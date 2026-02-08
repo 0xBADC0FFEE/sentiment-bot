@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http"
 import { Bot } from "grammy"
 import { waitUntil } from "@vercel/functions"
 import { Store } from "../src/store.js"
-import { registerCommands } from "../src/bot-commands.js"
+import { registerCommands, setCommandMenu } from "../src/bot-commands.js"
 
 const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN!)
 const store = new Store()
@@ -12,7 +12,7 @@ console.log("bot handler initialized")
 
 let initPromise: Promise<void> | undefined
 function ensureInit() {
-  initPromise ??= bot.init()
+  initPromise ??= bot.init().then(() => setCommandMenu(bot))
   return initPromise
 }
 
