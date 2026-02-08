@@ -5,7 +5,7 @@ import { createAlenkaSource } from "./alenka/index.js"
 let cached: Source[] | undefined
 
 export function getSources(): Source[] {
-  cached ??= [createTelegramSource(), createAlenkaSource()]
+  cached ??= [createAlenkaSource(), createTelegramSource()]
   return cached
 }
 

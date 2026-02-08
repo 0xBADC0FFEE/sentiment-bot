@@ -2,10 +2,10 @@ import { describe, it, expect } from "vitest"
 import { getSources, getSource } from "./registry.js"
 
 describe("registry", () => {
-  it("getSources returns telegram and alenka", () => {
+  it("getSources returns alenka and telegram", () => {
     const sources = getSources()
     expect(sources).toHaveLength(2)
-    expect(sources.map((s) => s.name)).toEqual(["telegram", "alenka"])
+    expect(sources.map((s) => s.name)).toEqual(["alenka", "telegram"])
   })
 
   it("getSource returns by name", () => {
