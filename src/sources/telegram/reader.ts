@@ -63,6 +63,8 @@ async function readChat(
   }
 
   const msgs: Message[] = []
+  const authorById = new Map<number, string>()
+  const replyIdByMsgId = new Map<string, number>()
   let offsetId = 0
 
   for (let batch = 0; batch < MAX_BATCHES; batch++) {
@@ -76,20 +78,31 @@ async function readChat(
     for (const msg of raw) {
       if (!msg.date || msg.date * 1000 < sinceTs) continue
       batchHasNew = true
+      const author = extractAuthorName(msg)
+      authorById.set(msg.id, author)
       if (!msg.message) continue
+      const msgId = String(msg.id)
       msgs.push({
-        id: String(msg.id),
+        id: msgId,
         chatId,
         chatTitle,
-        author: extractAuthorName(msg),
+        author,
         text: msg.message,
         date: new Date(msg.date * 1000),
         reactions: extractReactions(msg),
       })
+      const replyToMsgId = msg.replyTo instanceof Api.MessageReplyHeader ? msg.replyTo.replyToMsgId : undefined
+      if (replyToMsgId) replyIdByMsgId.set(msgId, replyToMsgId)
     }
 
     offsetId = raw[raw.length - 1].id
     if (!batchHasNew) break
+  }
+
+  // Pass 2: resolve reply authors from loaded messages
+  for (const m of msgs) {
+    const replyToMsgId = replyIdByMsgId.get(m.id)
+    if (replyToMsgId) m.replyTo = authorById.get(replyToMsgId)
   }
 
   log(`  ${chatTitle}: ${msgs.length} msgs`)
