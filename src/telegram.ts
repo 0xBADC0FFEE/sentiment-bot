@@ -48,22 +48,24 @@ export function formatHotAlert(c: Message): string {
   return formatCommentAlert("🔥", c)
 }
 
-export function formatTrendsSummary(summary: string, dateRange?: { from: Date; to: Date }): string {
+export function formatTrendsSummary(summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
   const range = dateRange ? ` · ${shortDate(dateRange.from)}–${shortDate(dateRange.to)}` : ""
-  return `📊 <b>Обзор трендов</b>${range}\n\n${esc(summary)}`
+  const count = itemCount ? ` · ${itemCount} сообщ.` : ""
+  return `📊 <b>Обзор трендов</b>${range}${count}\n\n${esc(summary)}`
 }
 
-export function formatTopicsSummary(summary: string, dateRange?: { from: Date; to: Date }): string {
+export function formatTopicsSummary(summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
   const range = dateRange ? ` · ${shortDate(dateRange.from)}–${shortDate(dateRange.to)}` : ""
-  return `🏷️ <b>Обзор топиков</b>${range}\n\n${esc(summary)}`
+  const count = itemCount ? ` · ${itemCount} сообщ.` : ""
+  return `🏷️ <b>Обзор топиков</b>${range}${count}\n\n${esc(summary)}`
 }
 
 export function formatAlert(alert: Alert): string {
   switch (alert.type) {
     case "author": return formatAuthorAlert(alert.comment)
     case "hot": return formatHotAlert(alert.comment)
-    case "trends": return formatTrendsSummary(alert.summary, alert.dateRange)
-    case "topics": return formatTopicsSummary(alert.summary, alert.dateRange)
+    case "trends": return formatTrendsSummary(alert.summary, alert.dateRange, alert.itemCount)
+    case "topics": return formatTopicsSummary(alert.summary, alert.dateRange, alert.itemCount)
   }
 }
 

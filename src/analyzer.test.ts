@@ -32,49 +32,59 @@ describe("groupBy", () => {
 describe("formatItems", () => {
   it("includes group title as header", () => {
     const items = [makeItem("test text", { groupTitle: "Отчёт ВТБ" })]
-    const formatted = formatItems(items)
-    expect(formatted).toContain("# Отчёт ВТБ")
-    expect(formatted).toContain("test text")
+    const { text } = formatItems(items)
+    expect(text).toContain("# Отчёт ВТБ")
+    expect(text).toContain("test text")
   })
 
   it("includes replyTo context", () => {
     const items = [makeItem("согласен", { replyTo: "user1" })]
-    const formatted = formatItems(items)
-    expect(formatted).toContain("→user1")
+    const { text } = formatItems(items)
+    expect(text).toContain("→user1")
   })
 
   it("strips newlines from text", () => {
     const items = [makeItem("line1\nline2\n\nline3")]
-    const formatted = formatItems(items)
-    expect(formatted).toContain("line1 line2 line3")
+    const { text } = formatItems(items)
+    expect(text).toContain("line1 line2 line3")
   })
 
   it("formats meta in parentheses", () => {
     const items = [makeItem("hello", { author: "Alice", meta: "👍5" })]
-    const formatted = formatItems(items)
-    expect(formatted).toContain('Alice (👍5): "hello"')
+    const { text } = formatItems(items)
+    expect(text).toContain('Alice (👍5): "hello"')
   })
 
   it("omits meta when absent", () => {
     const items = [makeItem("neutral", { author: "Eve" })]
-    const formatted = formatItems(items)
-    expect(formatted).toContain('Eve: "neutral"')
-    expect(formatted).not.toContain("(")
+    const { text } = formatItems(items)
+    expect(text).toContain('Eve: "neutral"')
+    expect(text).not.toContain("(")
   })
 
   it("includes date", () => {
     const date = new Date(2025, 1, 8, 14, 32)
     const items = [makeItem("text", { author: "Ana", date })]
-    const formatted = formatItems(items)
-    expect(formatted).toMatch(/8 фев.*14:32 \| Ana: "text"/)
+    const { text } = formatItems(items)
+    expect(text).toMatch(/8 фев.*14:32 \| Ana: "text"/)
   })
 
   it(`caps at MAX_ITEMS (${MAX_ITEMS})`, () => {
     const items = Array.from({ length: MAX_ITEMS + 100 }, (_, i) =>
       makeItem(`m${i}`),
     )
-    const formatted = formatItems(items)
-    expect(formatted).not.toContain(`m${MAX_ITEMS}`)
-    expect(formatted).toContain(`m${MAX_ITEMS - 1}`)
+    const { text } = formatItems(items)
+    expect(text).not.toContain(`m${MAX_ITEMS}`)
+    expect(text).toContain(`m${MAX_ITEMS - 1}`)
+  })
+
+  it("returns count of message lines", () => {
+    const items = [
+      makeItem("a", { groupKey: "g1", groupTitle: "G1" }),
+      makeItem("b", { groupKey: "g1", groupTitle: "G1" }),
+      makeItem("c", { groupKey: "g2", groupTitle: "G2" }),
+    ]
+    const { count } = formatItems(items)
+    expect(count).toBe(3)
   })
 })

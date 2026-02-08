@@ -15,7 +15,7 @@ export interface Message {
 }
 
 export type Alert =
-  | { type: "trends"; summary: string; dateRange?: { from: Date; to: Date } }
-  | { type: "topics"; summary: string; dateRange?: { from: Date; to: Date } }
+  | { type: "trends"; summary: string; dateRange?: { from: Date; to: Date }; itemCount?: number }
+  | { type: "topics"; summary: string; dateRange?: { from: Date; to: Date }; itemCount?: number }
   | { type: "author"; comment: Message }
   | { type: "hot"; comment: Message }

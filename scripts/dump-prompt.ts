@@ -27,7 +27,7 @@ if (messages.length === 0) {
   process.exit(0)
 }
 
-const formatted = formatItems(toItems(messages))
+const { text: formatted, count: promptMsgCount } = formatItems(toItems(messages))
 
 const system =
   "Ты аналитик российского фондового рынка. Анализируешь сообщения с инвестиционных площадок. Пиши максимально кратко, жертвуя грамматикой ради краткости. Отвечай plain text без Markdown-разметки (без #, **, ---, ```). Используй только символы • для списков и пустые строки для разделения секций."
@@ -50,7 +50,7 @@ const totalTokensEst = systemTokensEst + userTokensEst
 const md = `# LLM Request — /trends (${source.label})
 
 **Duration:** ${arg} (since ${since.toISOString()})
-**Messages:** ${messages.length} (max: ${MAX_ITEMS})
+**Messages:** ${messages.length} fetched, ${promptMsgCount} in prompt (max: ${MAX_ITEMS})
 **System prompt:** ~${systemTokensEst} tokens (${system.length} chars)
 **User prompt:** ~${userTokensEst} tokens (${user.length} chars)
 **Total input:** ~${totalTokensEst} tokens (${system.length + user.length} chars)

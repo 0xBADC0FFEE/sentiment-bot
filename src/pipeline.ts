@@ -39,21 +39,21 @@ export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Pr
   }
 
   log(`🧠 Analyzing trends...`)
-  const summary = await analyzeTrends(toItems(messages))
+  const result = await analyzeTrends(toItems(messages))
 
-  if (!summary) {
+  if (!result) {
     log("  No meaningful trends")
   } else {
     const dates = messages.map((m) => m.date.getTime())
     const dateRange = { from: new Date(Math.min(...dates)), to: new Date(Math.max(...dates)) }
-    const alert: Alert = { type: "trends", summary, dateRange }
+    const alert: Alert = { type: "trends", summary: result.text, dateRange, itemCount: result.itemCount }
     const subs = await store.getSubscribers()
     log(`📢 Sending to ${subs.length} subscribers`)
     await broadcast(bot, subs, formatAlert(alert))
   }
 
   log("✅ Done")
-  return { messages: messages.length, sent: !!summary }
+  return { messages: messages.length, sent: !!result }
 }
 
 // --- Generic: topics for any source ---
@@ -86,21 +86,21 @@ export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Pr
   }
 
   log(`🏷️ Analyzing topics [${topics.join(", ")}]...`)
-  const summary = await analyzeTopics(toItems(messages), topics)
+  const result = await analyzeTopics(toItems(messages), topics)
 
-  if (!summary) {
+  if (!result) {
     log("  No topic data")
   } else {
     const dates = messages.map((m) => m.date.getTime())
     const dateRange = { from: new Date(Math.min(...dates)), to: new Date(Math.max(...dates)) }
-    const alert: Alert = { type: "topics", summary, dateRange }
+    const alert: Alert = { type: "topics", summary: result.text, dateRange, itemCount: result.itemCount }
     const subs = await store.getSubscribers()
     log(`📢 Sending to ${subs.length} subscribers`)
     await broadcast(bot, subs, formatAlert(alert))
   }
 
   log("✅ Done")
-  return { messages: messages.length, sent: !!summary }
+  return { messages: messages.length, sent: !!result }
 }
 
 // --- Alenka-specific: authors ---

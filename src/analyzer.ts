@@ -53,11 +53,12 @@ function formatDate(date: Date): string {
   })
 }
 
-export function formatItems(items: Item[], tokenBudget = Infinity): string {
+export function formatItems(items: Item[], tokenBudget = Infinity): { text: string; count: number } {
   const capped = items.slice(0, MAX_ITEMS)
   const groups = groupBy(capped)
   const sections: string[] = []
   let tokens = 0
+  let count = 0
 
   outer:
   for (const [, group] of groups) {
@@ -73,14 +74,15 @@ export function formatItems(items: Item[], tokenBudget = Infinity): string {
       tokens += estimateTokens(line + "\n")
       if (tokens > tokenBudget) break outer
       sections.push(line)
+      count++
     }
     sections.push("")
   }
 
-  return sections.join("\n")
+  return { text: sections.join("\n"), count }
 }
 
-export async function analyzeTrends(items: Item[]): Promise<string | null> {
+export async function analyzeTrends(items: Item[]): Promise<{ text: string; itemCount: number } | null> {
   if (items.length < MIN_ITEMS) return null
 
   const system =
@@ -96,13 +98,13 @@ export async function analyzeTrends(items: Item[]): Promise<string | null> {
   const formatted = formatItems(items, budget)
 
   const llm = createProvider()
-  const text = await llm.complete(system, userPrefix + formatted + userSuffix, 4096)
+  const text = await llm.complete(system, userPrefix + formatted.text + userSuffix, 4096)
 
   if (text.includes("НЕТ ТРЕНДОВ")) return null
-  return text
+  return { text, itemCount: formatted.count }
 }
 
-export async function analyzeTopics(items: Item[], topics: string[]): Promise<string | null> {
+export async function analyzeTopics(items: Item[], topics: string[]): Promise<{ text: string; itemCount: number } | null> {
   if (items.length < MIN_ITEMS) return null
 
   const topicList = topics.map((t) => `• ${t}`).join("\n")
@@ -118,8 +120,8 @@ export async function analyzeTopics(items: Item[], topics: string[]): Promise<st
   const formatted = formatItems(items, budget)
 
   const llm = createProvider()
-  const text = await llm.complete(system, userPrefix + formatted + userSuffix, 4096)
+  const text = await llm.complete(system, userPrefix + formatted.text + userSuffix, 4096)
 
   if (text.includes("НЕТ ДАННЫХ")) return null
-  return text
+  return { text, itemCount: formatted.count }
 }
