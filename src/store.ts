@@ -100,12 +100,12 @@ export class Store {
     return (await this.redis.sismember(this.key("authors:tracked"), name)) === 1
   }
 
-  // Hot comments seen (alenka-specific)
+  // Hot comments seen (alenka-specific, 3-day TTL per comment)
   async isHotSeen(commentId: string): Promise<boolean> {
-    return (await this.redis.sismember(this.key("hot:seen"), commentId)) === 1
+    return (await this.redis.exists(this.key(`hot:seen:${commentId}`))) === 1
   }
 
   async markHotSeen(commentId: string): Promise<void> {
-    await this.redis.sadd(this.key("hot:seen"), commentId)
+    await this.redis.set(this.key(`hot:seen:${commentId}`), 1, { ex: 259200 })
   }
 }
