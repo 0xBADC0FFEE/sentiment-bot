@@ -96,6 +96,53 @@ async function readChat(
   return msgs
 }
 
+function peerKey(peer: Api.TypePeer | Api.TypeInputPeer): string {
+  if ("userId" in peer) return `u${peer.userId}`
+  if ("chatId" in peer) return `c${peer.chatId}`
+  if ("channelId" in peer) return `ch${peer.channelId}`
+  return "unknown"
+}
+
+async function filterRecentPeers(
+  client: TelegramClient,
+  peers: Api.TypeInputPeer[],
+  sinceTs: number,
+  log: (msg: string) => void,
+): Promise<Api.TypeInputPeer[]> {
+  if (peers.length === 0) return []
+
+  try {
+    const result = await client.invoke(
+      new Api.messages.GetPeerDialogs({
+        peers: peers.map((p) => new Api.InputDialogPeer({ peer: p })),
+      }),
+    )
+
+    const lastTs = new Map<string, number>()
+    for (const msg of result.messages) {
+      if ("peerId" in msg && msg.peerId && "date" in msg && msg.date) {
+        lastTs.set(peerKey(msg.peerId), msg.date * 1000)
+      }
+    }
+
+    let skipped = 0
+    const active = peers.filter((p) => {
+      const ts = lastTs.get(peerKey(p))
+      if (ts !== undefined && ts < sinceTs) {
+        skipped++
+        return false
+      }
+      return true
+    })
+
+    if (skipped > 0) log(`  skipped ${skipped} chats (no recent msgs)`)
+    return active
+  } catch (e) {
+    log(`  getPeerDialogs failed: ${e}, checking all`)
+    return peers
+  }
+}
+
 export async function readMessages(
   client: TelegramClient,
   peers: Api.TypeInputPeer[],
@@ -103,9 +150,10 @@ export async function readMessages(
   log: (msg: string) => void,
 ): Promise<Message[]> {
   const sinceTs = since.getTime()
+  const active = await filterRecentPeers(client, peers, sinceTs, log)
   const all: Message[] = []
 
-  for (const peer of peers) {
+  for (const peer of active) {
     try {
       const msgs = await readChat(client, peer, sinceTs, log)
       all.push(...msgs)
