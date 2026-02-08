@@ -1,15 +1,17 @@
-const DEFAULT_MODELS: Record<string, string> = {
-  anthropic: "claude-haiku-4-5-20251001",
-  gemini: "gemini-2.5-flash",
-  groq: "llama-3.3-70b-versatile",
-  openrouter: "deepseek/deepseek-r1-0528:free",
+const DEFAULT_LLM_URI = "anthropic://claude-haiku-4-5-20251001"
+
+function parseLlm(uri: string) {
+  const url = new URL(uri)
+  return { provider: url.protocol.slice(0, -1), model: url.hostname + url.pathname }
 }
 
-const provider = process.env.LLM_PROVIDER ?? "anthropic"
+const llmUri = process.env.LLM_MODEL || DEFAULT_LLM_URI
+const { provider, model } = parseLlm(llmUri)
 
 export const llm = {
+  uri: llmUri,
   provider,
-  model: process.env.LLM_MODEL || DEFAULT_MODELS[provider] || "unknown",
+  model,
   geminiApiKey: process.env.GEMINI_API_KEY,
   groqApiKey: process.env.GROQ_API_KEY,
   openrouterApiKey: process.env.OPENROUTER_API_KEY,
@@ -37,10 +39,10 @@ export const MAX_ITEMS = 2000
 export const MIN_ITEMS = 10
 
 const CONTEXT_WINDOWS: Record<string, number> = {
-  "claude-haiku-4-5-20251001": 200_000,
-  "gemini-2.5-flash": 1_000_000,
-  "llama-3.3-70b-versatile": 128_000,
-  "deepseek/deepseek-r1-0528:free": 163_840,
+  "anthropic://claude-haiku-4-5-20251001": 200_000,
+  "gemini://gemini-2.5-flash": 1_000_000,
+  "groq://llama-3.3-70b-versatile": 128_000,
+  "openrouter://deepseek/deepseek-r1-0528:free": 163_840,
 }
 
 const DEFAULT_CONTEXT = 128_000
@@ -50,7 +52,7 @@ export function estimateTokens(text: string): number {
 }
 
 export function getInputBudget(): number {
-  const ctx = CONTEXT_WINDOWS[llm.model]
-  if (!ctx) console.warn(`Unknown context window for "${llm.model}", using ${DEFAULT_CONTEXT}`)
+  const ctx = CONTEXT_WINDOWS[llm.uri]
+  if (!ctx) console.warn(`Unknown context window for "${llm.uri}", using ${DEFAULT_CONTEXT}`)
   return (ctx ?? DEFAULT_CONTEXT) - 4096 - 500
 }

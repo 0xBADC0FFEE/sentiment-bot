@@ -211,7 +211,7 @@ async function handleStatus(ctx: Context, store: Store) {
   ])
   const sourceNames = getSources().map((s) => s.label).join(", ")
   await ctx.reply(
-    `ℹ️ Статус:\n• Runtime: ${runtime}\n• LLM: ${llm.provider}/${llm.model}\n• Sources: ${sourceNames}\n• Папка TG: ${folder ?? "—"}\n• Топиков: ${topics.length}\n• Авторов: ${authors.length}\n• Authors lastId: ${authorsId ?? "—"}\n• Подписчиков: ${subs.length}`,
+    `ℹ️ Статус:\n• Runtime: ${runtime}\n• LLM: ${llm.uri}\n• Sources: ${sourceNames}\n• Папка TG: ${folder ?? "—"}\n• Топиков: ${topics.length}\n• Авторов: ${authors.length}\n• Authors lastId: ${authorsId ?? "—"}\n• Подписчиков: ${subs.length}`,
   )
 }
 
