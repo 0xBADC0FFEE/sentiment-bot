@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/bot.ts": { "memory": 1024, "maxDuration": 300 },
+    "api/cron/telegram-trends.ts": { "memory": 1024 },
+    "api/cron/alenka-trends.ts": { "memory": 1024 },
+    "api/cron/alenka-authors.ts": { "memory": 1024 },
+    "api/cron/alenka-hot.ts": { "memory": 1024 }
+  }
+}

@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  
+    <link rel="stylesheet" href="/static/global/eskimobi/eskimobi.css">
+  <script src="/static/global/eskimobi/eskimobi.js"></script>
+    
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-touch-fullscreen" content="yes">
+  
+  <link rel="icon" href="/static/global/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="/static/global/favicon.ico" type="image/x-icon">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/global/images/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/global/images/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/global/images/favicon-16x16.png">
+  <link rel="manifest" href="/static/global/manifest.json">
+  <link rel="mask-icon" href="/static/global/images/safari-pinned-tab.svg" color="#294c96">
+  <meta name="msapplication-TileColor" content="#294c96">
+  <meta name="theme-color" content="#294c96">
+  
+  <link href="/static/global/fonts/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="/static/global/fonts/roboto/roboto.css" rel="stylesheet">
+  
+  <script src="/static/plugin/jquery/jquery-3.2.0.min.js"></script>
+  
+    
+  <link rel="stylesheet" href="/static/global/styles.css" media="all">
+  <link rel="stylesheet" href="/static/global/styles2.css" media="all">
+  
+  <script src="/static/plugin/highlight/textHighlight.js"></script>
+  <script src="/static/global/common.js"></script>
+  
+  <script src="/static/global/menu_common.js"></script>
+  <script src="/static/global/menu_dx.js"></script>
+  
+  <link href="/static/plugin/highslide/highslide.css" rel="stylesheet">
+  <script src="/static/plugin/highslide/highslide-with-gallery.js"></script>
+  <script src="/static/plugin/highslide/setup.js"></script>
+  
+    
+    
+  <link href="/static/global/index_1170.css" rel="stylesheet">
+  <script src="/static/global/index_1170.js"></script>
+  
+  <meta name="csrf-param" content="_csrf">
+<meta name="csrf-token" content="0bfoAqSIuTKF3MueFkYyYfIPF8FYYb0FiXBG1oCHzrqW2atz-9vbC9K3oPNXF0Mqn0B7hw5Si1rBBiPuwfSo7Q==">
+  <title>Лента комментариев</title>
+    
+</head>
+
+<body class=header--fixed>
+
+
+<div id="modal_bg"></div>
+<div id="modal_data"></div>
+<div id="info_data"></div>
+
+<div class="layout layout_compact" id="top">
+  
+  <div class="layout__overlay"></div>
+  
+  
+<div class="header-modern">
+  <div class="header-modern__top">
+    
+    <button class="header-modern__burger burger">
+      <span class="icon">
+        <img width="22px" height="22px" src="/static/global/img/icon-menu.svg" alt="" />
+      </span>
+    </button>
+    
+    <a class="header-modern__logo" href="/">
+      <div class="header-modern__logo-text"><img src="/static/global/img/header_logo-text.svg" /></div>
+      <div class="header-modern__logo-icon"><img src="/static/global/img/header_logo-image.svg" /></div>
+    </a>
+    
+<div class="header-modern__info">
+        <div class="header-modern__info__top"><a href="/">Добро пожаловать на сайт</a></div>
+        <div class="header-modern__info__bottom"><a href="/">для частных инвесторов alenka.capital</a></div>
+        </div>    
+    <div class="header-modern__actions">
+      
+      <form class="header-modern__search" action="/post/search/" method="get">
+        <div class="header-modern__search__dropdown">
+          <input type="text" name="FormPostSearch[search]" placeholder="Поиск" aria-invalid="true" />
+          <select name="FormPostSearch[cat_id]">
+            <option value=""></option>
+            <option value="1">Посты</option>
+            <option value="596">Новости</option>
+            <option value="7">Комментарии</option>
+            <option value="8">Пользователи</option>
+          </select>
+          <button type="submit">
+            <span class="icon">
+              <img width="22px" height="22px" src="/static/global/img/icon-search-white.svg" alt="" />
+            </span>
+          </button>
+        </div>
+        <button class="header-modern__button header-modern__search__button" type="button">
+          <span class="icon">
+            <img width="22px" height="22px" src="/static/global/img/icon-search-white.svg" alt="" />
+          </span>
+        </button>
+      </form>
+      
+      <a class="header-modern__button" id="headerModernInfoPopupButton">
+        <span class="icon">
+          <img width="22px" height="22px" src="/static/global/img/icon-info.svg" alt="" />
+        </span>
+      </a>
+      
+            
+      <a class="header-modern__button" href="/comment/last/">
+        <span class="icon">
+          <img width="24px" height="22px" src="/static/global/img/icon-comments.svg" alt="" />
+        </span>
+      </a>
+      
+            
+            
+      <a class="header-modern__button" href="/post/view_44058/">
+        <span class="header-modern__button__count" style="background-color: #093;">99</span>        <span class="icon">
+          <img width="26px" height="22px" src="/static/global/img/icon-notifications.svg" alt="" />
+        </span>
+      </a>
+      
+            
+            
+      <a class="header-modern__button" href="/post/view_78304/">
+                <span class="icon">
+          <img src="/static/global/img/globe.svg" width="21px" alt="" />
+        </span>
+      </a>
+            
+            
+      <a class="header-modern__profile" href="/personal/">
+                <div class="header-modern__profile__image">
+          <img src="/data/user/3/32/76287_0dbec.jpg" />
+        </div>
+      </a>
+      
+            
+            
+      <div class="header-modern__dropdown" id="headerModernMoreDropdown">
+        <button class="header-modern__button header-modern__dropdown-toggler" data-toggler data-target="#headerModernMoreDropdown" data-toggle-class="active">
+          <span class="icon">
+            <img width="16px" height="16px" src="/static/global/img/icon-dots-white.svg" alt="" />
+          </span>
+        </button>
+        <div class="header-modern__dropdown-list">
+          <div class="header-modern__dropdown-list-item"><a class="header-modern__dropdown-list-link" href="/personal/">Профиль</a></div>
+                    <div class="header-modern__dropdown-list-divider"></div>
+          <div class="header-modern__dropdown-list-item"><a class="header-modern__dropdown-list-link" href="/login/out/">Выйти</a></div>
+        </div>
+      </div>
+      
+            
+      <button class="header-modern__button header-modern__button--mobile" data-toggler data-target="body" data-toggle-class="header--fixed" onclick="user_header_save();">
+        <span class="icon">
+          <img class="icon-lock" width="22px" height="22px" src="/static/global/img/icon-pin.svg" alt="" />
+        </span>
+      </button>
+      
+    </div>
+    
+  </div>
+</div>
+
+<div class="header-modern__popup active" id="headerModernInfoPopup">
+  
+  <div class="header-modern__stats">
+    
+<a href="/category/elvis_portfel_462/" style="color: #0000ff" class="header-modern__stats-item">ELVIS портфель</a><a href="/category/elvis_vnebirja_37/" style="color: #8b00ff" class="header-modern__stats-item">ELVIS внебиржа</a><a href="/category/alenka_opif_837/" class="header-modern__stats-item">ALЁNKA ОПИФ <span>27278</span></a><a href="https://www.comon.ru/strategies/16020/" target="_blank" class="header-modern__stats-item">ALЁNKA Value <span>+504%</span></a><a href="https://www.comon.ru/strategies/17770/" target="_blank" class="header-modern__stats-item">ALЁNKA Dividend <span>+218%</span></a><a href="https://www.comon.ru/strategies/17107/" target="_blank" class="header-modern__stats-item">ALЁNKA Bonds&Stocks <span>+247%</span></a><a href="https://www.comon.ru/strategies/18475/" target="_blank" class="header-modern__stats-item">ALЁNKA Snickers <span>+368%</span></a><a href="https://www.comon.ru/strategies/106120/" target="_blank" class="header-modern__stats-item">ALЁNKA Growth</a><a href="https://www.comon.ru/strategies/17693/" target="_blank" class="header-modern__stats-item">ALЁNKA MSCI</a><a class="header-modern__stats-item" href="/info-graph/alenka/">Шоколад «Алёнка»<span>89.99 рублей</span></a><a class="header-modern__stats-item" href="/info-graph/rouble-course/">1 рубль<span>0.01298</span></a><a class="header-modern__stats-item" href="/info-graph/saw-imoex/">Пила Игоря</a><a class="header-modern__stats-item" href="/info-graph/goods-price/">Сырье<span>в ₽</span></a>    
+  </div>
+  
+  <div class="header-modern__nav">
+    <a class="header-modern__nav-item" href="/invest/" style="color: #009933"><span>Мои инвестиции</span></a><a class="header-modern__nav-item" href="/forum/"><span>Форум</span></a><a class="header-modern__nav-item" href="/dividend/"><span>Календарь дивидендов</span></a><a class="header-modern__nav-item" href="/emitent/"><span>База эмитентов</span></a><a class="header-modern__nav-item" href="/info-graph/market-map/"><span>Карта рынка</span></a><a class="header-modern__nav-item" href="/sector/review/"><span>Расклад сил</span></a><a class="header-modern__nav-item" href="/info-graph/leaders/"><span>Лидеры роста</span></a><a class="header-modern__nav-item" href="/info-graph/mcap/"><span>Рейтинг MCap</span></a><a class="header-modern__nav-item" href="/info-graph/imoex-cake-ff/"><span>Индексный торт</span></a><a class="header-modern__nav-item" href="https://law-capital.ru/" target="_blank" style="color: #ff502d"><span>Law & Capital</span></a>  </div>
+  
+</div>
+  
+<div class="menu">
+  
+  <div class="menu__search">
+    <div class="menu-search">
+      
+      <form action="/post/search/" method="post">
+        <div class="form-group">
+          <input type="text" class="menu-search__field" name="FormPostSearch[search]" placeholder="Поиск по сайту" />
+          <input type="hidden" name="_csrf" value="0bfoAqSIuTKF3MueFkYyYfIPF8FYYb0FiXBG1oCHzrqW2atz-9vbC9K3oPNXF0Mqn0B7hw5Si1rBBiPuwfSo7Q==" />
+          <button type="submit" class="menu-search__button"><i class="fa fa-search"></i></button>
+        </div>
+      </form>
+      
+    </div>
+  </div>
+  
+  <div class="menu__content">
+    <div class="menu__top">
+      <a href="/" class="menu__logo">
+        <img src="/static/global/images/logo.png" alt="Аленка Капитал" class="menu__logo-image">
+      </a>
+      
+            
+      <div class="menu__user">
+        <div class="usernav">
+          <a class="usernav__main" href="/personal/">
+            <div class="usernav__avatar" style="background-image: url('/data/user/3/32/76287_0dbec.jpg');"></div>
+            <div class="usernav__info">
+              <div class="usernav__username">Artem Burtsev</div>
+            </div>
+          </a>
+          <div class="usernav__menu">
+                        <a class="usernav__logout" href="/login/out/">Выйти</a>
+          </div>
+        </div>
+      </div>
+      
+            
+    </div>
+    <div class="menu__main">
+      <nav class="menu__wrap" role="navigation">
+        
+                
+        <ul class="menu__nav">
+          <li class="menu__nav-item"><a href="/category/lastpost/" class="menu__nav-link">Новое на сайте</a></li>
+          <li class="menu__nav-item"><a class="menu__nav-link" href="/category/lenta_novostey_596/">Лента новостей</a></li>
+        </ul>
+        
+        <ul class="menu__nav">
+              
+<li class="menu__nav-item menu__nav-item_parent">
+  
+  <a class="menu__nav-link" href="/mview/kapitanskiy_mostik_95/">Капитанский мостик</a>  
+    
+</li>
+    
+        
+<li class="menu__nav-item menu__nav-item_parent">
+  
+  <a class="menu__nav-link" href="/mview/otchetnost_kompaniy_200/">Отчетность компаний</a>  
+    
+</li>
+    
+        
+<li class="menu__nav-item menu__nav-item_parent">
+  
+  <a class="menu__nav-link" href="/mview/korporativnyie_sobyitiya_44/">Корпоративные события</a>  
+    
+</li>
+    
+        
+<li class="menu__nav-item menu__nav-item_parent">
+  
+  <a class="menu__nav-link" href="/mview/investitsii_s_alenka_677/">Инвестиции с ALЁNKA </a>  
+    
+</li>
+    
+            </ul>
+        
+        <ul class="menu__nav">
+          <li class="menu__nav-item"><a href="/invest/" class="menu__nav-link">Мои инвестиции</a></li>
+          <li class="menu__nav-item"><a href="/forum/" class="menu__nav-link">Форум</a></li>
+          <li class="menu__nav-item"><a href="/dividend/" class="menu__nav-link">Календарь дивидендов</a></li>
+          <li class="menu__nav-item"><a href="/emitent/" class="menu__nav-link">База эмитентов</a></li>
+          <li class="menu__nav-item"><a href="/info-graph/market-map/" class="menu__nav-link">Карта рынка</a></li>
+          <li class="menu__nav-item"><a href="/sector/review/" class="menu__nav-link">Расклад сил</a></li>
+          <li class="menu__nav-item"><a href="/info-graph/leaders/" class="menu__nav-link">Лидеры роста</a></li>
+          <li class="menu__nav-item"><a href="/info-graph/mcap/" class="menu__nav-link">Рейтинг MCap</a></li>
+          <li class="menu__nav-item"><a href="/info-graph/imoex-cake-ff/" class="menu__nav-link">Индексный торт</a></li>
+          <li class="menu__nav-item"><a href="/info-graph/saw-imoex/" class="menu__nav-link">Пила Игоря</a></li>
+          <li class="menu__nav-item"><a href="/info-graph/goods-price/" class="menu__nav-link">Сырьё в ₽</a></li>
+          <li class="menu__nav-item"><a href="/info-graph/index/" class="menu__nav-link">Больше инфографики</a></li>
+                  </ul>
+        
+        <ul class="menu__nav">
+          <li class="menu__nav-item"><a class="menu__nav-link" href="/category/blogi_851/">Блоги</a></li>
+        </ul>
+        
+        <ul class="menu__nav">
+          <li class="menu__nav-item"><a href="/category/top/" class="menu__nav-link">100%-ный шоколад</a></li>
+          <li class="menu__nav-item"><a class="menu__nav-link" href="/category/razvitie_proekta_873/">Развитие проекта</a></li>
+          <li class="menu__nav-item"><a href="/info/map/" class="menu__nav-link">ALЁNKA в мире</a></li>
+          <li class="menu__nav-item"><a href="/info/about/" class="menu__nav-link">О проекте</a></li>
+          <li class="menu__nav-item">&nbsp;</li>
+          <li class="menu__nav-item">&nbsp;</li>
+          <li class="menu__nav-item">&nbsp;</li>
+        </ul>
+        
+      </nav>
+    </div>
+  </div>
+  
+  <div class="burger menu__burger">
+    <div class="burger__wrap">
+      <div class="burger__button"></div>
+    </div>
+    <div class="burger__label">Меню</div>
+  </div>
+  
+  <div class="menu__arrows">
+    <a href="#" class="menu__arrows-item menu__arrows-item_top" onclick="$('body,html').animate({scrollTop: 0}, 'slow'); return false;"></a>
+    <a href="#" class="menu__arrows-item menu__arrows-item_bot" onclick="$('body,html').animate({scrollTop: Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, document.body.offsetHeight, document.documentElement.offsetHeight, document.body.clientHeight, document.documentElement.clientHeight)}, 'slow'); return false;"></a>
+  </div>
+  
+</div>
+  
+  <main class="layout__content" role="main">
+    
+    <div class="content"><div class="post">    
+        
+    
+<script src="/static/plugin/fupload/jquery.ui.widget.js"></script>
+<script src="/static/plugin/fupload/jquery.fileupload.js"></script>
+
+<link rel="stylesheet" href="/static/comment/comments_1170.css" media="all">
+<script src="/static/comment/comments.js"></script>
+
+<script>
+
+$(function() {
+    
+    comment_function();
+    site_navigation();
+    comment_menu();
+    
+});
+
+</script>
+
+<div class="post__head">
+  
+  <div class="bcrumbs hide_mobile"><ul class="bcrumbs__list"><li class="bcrumbs__item"><a class="bcrumbs__link" href="/"><span class="bcrumbs__name">Главная</span></a><span class="bcrumbs__arrow">&gt;</span></li><li class="bcrumbs__item"><a class="bcrumbs__link" href="/comment/last/"><span class="bcrumbs__name">Лента комментариев</span></a><span class="bcrumbs__arrow">&gt;</span></li></ul></div>  
+<style>
+
+.nav-comments .active:not(#nav-comments-settings) {
+    display: none;
+}
+
+</style>
+
+<div class="post__head--horizontal">
+  
+  <h1 class="post__title">Лента комментариев</h1>
+  
+  <div class="nav-comments">
+    
+    <a class="nav-comments__button icon-only-mobile" href="/comment/mposts/">
+      <svg width="24" height="40" viewBox="0 0 506 715" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M343.063 441.744L343.684 441.015C347.259 436.814 350.637 432.846 353.697 428.956C371.655 406.178 381.146 378.84 381.146 349.896C381.143 279.229 323.645 221.736 252.974 221.736C182.294 221.736 124.79 279.229 124.79 349.896C124.79 378.813 134.27 406.133 152.205 428.902C155.791 433.466 159.565 437.843 163.561 442.477L163.783 442.734C176.277 457.227 189.197 472.214 194.111 490.192C195.039 493.634 195.462 499.768 195.371 508.433V518.401C195.371 526.044 201.591 532.263 209.235 532.263H295.992C303.637 532.263 309.857 526.044 309.857 518.401V508.287C309.799 500.266 310.217 494.569 311.098 491.372C316.036 473.524 330.395 456.641 343.063 441.744ZM284.367 483.998C283.491 487.175 282.451 492.085 282.184 501.909L282.113 504.539H223.127L223.069 501.894C222.842 491.46 221.777 486.28 220.873 482.932C214.3 458.873 197.936 439.887 184.788 424.633L184.557 424.364C180.789 419.996 177.225 415.862 174.002 411.764C159.949 393.924 152.52 372.529 152.52 349.896C152.52 294.515 197.584 249.46 252.975 249.46C308.359 249.46 353.417 294.515 353.417 349.896C353.417 372.551 345.979 393.959 331.909 411.808C329.116 415.36 325.749 419.314 322.492 423.137L321.826 423.92C307.349 440.943 290.942 460.237 284.367 483.998ZM295.99 543.674H209.235C201.59 543.674 195.37 549.892 195.37 557.536C195.37 565.179 201.59 571.397 209.235 571.397H295.992C303.637 571.397 309.857 565.178 309.857 557.536C309.857 549.892 303.637 543.674 295.99 543.674ZM274.301 580.259H230.924C223.28 580.259 217.06 586.478 217.06 594.12C217.06 601.764 223.28 607.982 230.924 607.982H274.301C281.946 607.982 288.165 601.764 288.165 594.12C288.165 586.478 281.946 580.259 274.301 580.259ZM481.594 336.034H424.437C416.792 336.034 410.573 342.253 410.573 349.896C410.573 357.539 416.793 363.758 424.437 363.758H481.594C489.239 363.758 495.458 357.539 495.458 349.896C495.458 342.253 489.239 336.034 481.594 336.034ZM81.5041 336.034H24.3405C16.6958 336.034 10.4766 342.253 10.4766 349.896C10.4766 357.539 16.6958 363.758 24.3405 363.758H81.5047C89.1494 363.758 95.3692 357.539 95.3692 349.896C95.3692 342.253 89.1493 336.034 81.5041 336.034ZM252.97 107.449C245.325 107.449 239.105 113.668 239.105 121.311V178.476C239.105 186.119 245.325 192.338 252.97 192.338C260.614 192.338 266.834 186.119 266.834 178.476V121.311C266.834 113.667 260.614 107.449 252.97 107.449ZM424.428 501.734L384.01 461.313C382.725 460.021 381.197 458.998 379.514 458.3C377.831 457.603 376.026 457.247 374.205 457.252C372.383 457.247 370.579 457.603 368.897 458.3C367.214 458.996 365.686 460.02 364.402 461.311C358.997 466.715 358.996 475.51 364.4 480.915L404.819 521.337C406.103 522.629 407.631 523.652 409.314 524.349C410.997 525.046 412.802 525.403 414.623 525.398C418.325 525.398 421.806 523.957 424.427 521.338C429.832 515.935 429.833 507.14 424.428 501.734ZM101.113 178.458C99.8287 177.167 98.3007 176.143 96.6178 175.445C94.9348 174.748 93.1303 174.392 91.3086 174.397C89.4877 174.392 87.684 174.748 86.0017 175.444C84.3194 176.141 82.7919 177.164 81.5077 178.455C76.1015 183.858 76.0997 192.651 81.5041 198.057L121.907 238.468C124.527 241.088 128.009 242.53 131.712 242.53C135.414 242.53 138.895 241.089 141.513 238.471C144.132 235.853 145.576 232.372 145.576 228.671C145.581 226.85 145.225 225.046 144.528 223.364C143.831 221.681 142.808 220.154 141.517 218.87L101.113 178.458ZM131.73 457.252C128.025 457.252 124.544 458.694 121.925 461.313L81.5035 501.734C80.2122 503.019 79.1885 504.546 78.4916 506.229C77.7947 507.911 77.4384 509.715 77.4434 511.536C77.4387 513.357 77.7952 515.161 78.4924 516.843C79.1896 518.526 80.2137 520.053 81.5053 521.337C84.123 523.954 87.6043 525.396 91.3086 525.396C95.0128 525.396 98.4947 523.954 101.114 521.335L141.534 480.913C144.153 478.295 145.595 474.814 145.594 471.111C145.594 467.409 144.151 463.929 141.532 461.311C140.248 460.02 138.72 458.997 137.038 458.3C135.355 457.603 133.551 457.247 131.73 457.252ZM414.624 174.397C410.92 174.397 407.439 175.839 404.821 178.458L364.412 218.868C363.12 220.152 362.096 221.679 361.399 223.362C360.702 225.044 360.346 226.848 360.351 228.669C360.346 230.49 360.703 232.294 361.4 233.976C362.097 235.659 363.122 237.186 364.413 238.47C367.028 241.088 370.508 242.528 374.214 242.528C376.036 242.533 377.841 242.177 379.524 241.48C381.207 240.783 382.735 239.759 384.019 238.467L424.428 198.059C425.72 196.775 426.744 195.247 427.441 193.565C428.138 191.882 428.494 190.078 428.489 188.257C428.494 186.436 428.137 184.633 427.44 182.95C426.743 181.268 425.718 179.741 424.427 178.457C423.142 177.166 421.615 176.142 419.932 175.445C418.249 174.749 416.445 174.392 414.624 174.397Z" fill="currentColor"/>
+    </svg>
+      Мои темы
+    </a>
+    
+    <a class="nav-comments__button icon-only-mobile active" href="/comment/last/">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20.4867 1H3.26549C1.46492 1 0 2.47489 0 4.28829V14.9008C0 16.7101 1.45857 18.1826 3.25392 18.1891V23.0048L10.1269 18.1891H20.4866C22.2872 18.1891 23.7521 16.7139 23.7521 14.9008V4.28829C23.7521 2.47489 22.2871 1 20.4866 1H20.4867ZM22.3604 14.9008C22.3604 15.9411 21.5199 16.7877 20.4867 16.7877H9.69013L4.64536 20.3226V16.7877H3.26524C2.23201 16.7877 1.39147 15.9411 1.39147 14.9008V4.28836C1.39147 3.24778 2.23201 2.40152 3.26524 2.40152H20.4864C21.5196 2.40152 22.3602 3.24781 22.3602 4.28836L22.3604 14.9008Z" fill="currentColor"/>
+        <path d="M6.35742 5.95166H17.3952V7.35311H6.35742V5.95166Z" fill="currentColor"/>
+        <path d="M6.35742 8.94141H17.3952V10.3429H6.35742V8.94141Z" fill="currentColor"/>
+        <path d="M6.35742 11.9312H17.3952V13.3327H6.35742V11.9312Z" fill="currentColor"/>
+      </svg>
+      Лента комментариев
+    </a>
+    
+    <a class="nav-comments__button icon-only-mobile" href="/comment/top/">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9.35355 19.3536C9.15829 19.5488 8.84171 19.5488 8.64645 19.3536L5.46447 16.1716C5.2692 15.9763 5.2692 15.6597 5.46447 15.4645C5.65973 15.2692 5.97631 15.2692 6.17157 15.4645L9 18.2929L11.8284 15.4645C12.0237 15.2692 12.3403 15.2692 12.5355 15.4645C12.7308 15.6597 12.7308 15.9763 12.5355 16.1716L9.35355 19.3536ZM9.5 4L9.5 19L8.5 19L8.5 4L9.5 4Z" fill="currentColor"/>
+        <path d="M17.8477 4.28125V10H17.125V5.18359L15.668 5.71484V5.0625L17.7344 4.28125H17.8477ZM16.1914 18.3945H16.2656C16.6823 18.3945 17.0208 18.3359 17.2812 18.2188C17.5417 18.1016 17.7422 17.944 17.8828 17.7461C18.0234 17.5482 18.1198 17.3255 18.1719 17.0781C18.224 16.8281 18.25 16.5716 18.25 16.3086V15.4375C18.25 15.1797 18.2201 14.9505 18.1602 14.75C18.1029 14.5495 18.0221 14.3815 17.918 14.2461C17.8164 14.1107 17.7005 14.0078 17.5703 13.9375C17.4401 13.8672 17.3021 13.832 17.1562 13.832C16.9896 13.832 16.8398 13.8659 16.707 13.9336C16.5768 13.9987 16.4661 14.0911 16.375 14.2109C16.2865 14.3307 16.2188 14.4714 16.1719 14.6328C16.125 14.7943 16.1016 14.9701 16.1016 15.1602C16.1016 15.3294 16.1224 15.4935 16.1641 15.6523C16.2057 15.8112 16.2695 15.9544 16.3555 16.082C16.4414 16.2096 16.5482 16.3112 16.6758 16.3867C16.806 16.4596 16.9583 16.4961 17.1328 16.4961C17.2943 16.4961 17.4453 16.4648 17.5859 16.4023C17.7292 16.3372 17.8555 16.25 17.9648 16.1406C18.0768 16.0286 18.1654 15.9023 18.2305 15.7617C18.2982 15.6211 18.3372 15.474 18.3477 15.3203H18.6914C18.6914 15.5365 18.6484 15.75 18.5625 15.9609C18.4792 16.1693 18.362 16.3594 18.2109 16.5312C18.0599 16.7031 17.8828 16.8411 17.6797 16.9453C17.4766 17.0469 17.2552 17.0977 17.0156 17.0977C16.7344 17.0977 16.4909 17.043 16.2852 16.9336C16.0794 16.8242 15.9102 16.6784 15.7773 16.4961C15.6471 16.3138 15.5495 16.1107 15.4844 15.8867C15.4219 15.6602 15.3906 15.431 15.3906 15.1992C15.3906 14.9284 15.4284 14.6745 15.5039 14.4375C15.5794 14.2005 15.6914 13.9922 15.8398 13.8125C15.9883 13.6302 16.1719 13.4883 16.3906 13.3867C16.612 13.2852 16.8672 13.2344 17.1562 13.2344C17.4818 13.2344 17.7591 13.2995 17.9883 13.4297C18.2174 13.5599 18.4036 13.7344 18.5469 13.9531C18.6927 14.1719 18.7995 14.418 18.8672 14.6914C18.9349 14.9648 18.9688 15.2461 18.9688 15.5352V15.7969C18.9688 16.0911 18.9492 16.3906 18.9102 16.6953C18.8737 16.9974 18.8021 17.2865 18.6953 17.5625C18.5911 17.8385 18.4388 18.0859 18.2383 18.3047C18.0378 18.5208 17.776 18.6927 17.4531 18.8203C17.1328 18.9453 16.737 19.0078 16.2656 19.0078H16.1914V18.3945Z" fill="currentColor"/>
+      </svg>
+      Лучшие/худшие
+    </a>
+    
+    <a class="nav-comments__button icon-only-mobile" href="/comment/me/">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M21.2373 19.4606C21.1517 19.4605 21.0674 19.4393 20.9919 19.3989C20.9164 19.3584 20.8521 19.3 20.8047 19.2287C19.8745 17.8294 18.6461 16.6535 17.2076 15.7853C15.7691 14.9172 14.1561 14.3784 12.4847 14.2075V16.6505C12.4847 16.7444 12.4594 16.8366 12.4113 16.9172C12.3632 16.9979 12.2942 17.064 12.2115 17.1086C12.1289 17.1532 12.0357 17.1746 11.9419 17.1704C11.848 17.1663 11.7571 17.1369 11.6787 17.0852L3.23387 11.5191C3.162 11.4718 3.103 11.4073 3.06219 11.3315C3.02137 11.2558 3 11.171 3 11.085C3 10.9989 3.02137 10.9141 3.06219 10.8384C3.103 10.7626 3.162 10.6981 3.23387 10.6508L11.6807 5.08571C11.7592 5.03407 11.8501 5.00462 11.9439 5.0005C12.0378 4.99638 12.1309 5.01775 12.2136 5.06233C12.2962 5.1069 12.3653 5.17303 12.4134 5.25369C12.4615 5.33435 12.4868 5.42653 12.4867 5.52043V8.05907C14.4555 8.37107 21.7573 10.1224 21.7573 18.9406C21.7574 19.0523 21.7216 19.161 21.6551 19.2507C21.5886 19.3404 21.495 19.4064 21.3881 19.4387C21.3391 19.4531 21.2884 19.4605 21.2373 19.4606V19.4606ZM11.9813 13.1363C13.626 13.2081 15.2392 13.6118 16.7239 14.3231C18.2086 15.0344 19.5341 16.0387 20.6206 17.2755C19.669 9.69083 12.2683 9.05955 11.9324 9.03355C11.8011 9.02407 11.6783 8.96513 11.5887 8.86862C11.4991 8.77211 11.4495 8.64522 11.4499 8.51355V6.48555L4.46523 11.0865L11.4426 15.6854V13.6563C11.4426 13.5184 11.4974 13.3862 11.5949 13.2887C11.6924 13.1911 11.8247 13.1363 11.9626 13.1363H11.9813Z" fill="currentColor"/>
+      </svg>
+      Ответы мне
+    </a>
+    
+        
+    <a data-nav-comments-popup-toggler="nav-comments-settings" id="nav-comments-settings" class="nav-comments__button icon-only-mobile icon-only" href="#">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14.7271 12C16.2432 12 17.4771 10.7662 17.4771 9.25002C17.4771 7.73387 16.2432 6.50003 14.7271 6.50003C13.2109 6.50003 11.9771 7.73387 11.9771 9.25002C11.9771 10.7662 13.2109 12 14.7271 12ZM14.7271 7.41668C15.7382 7.41668 16.5604 8.23892 16.5604 9.25002C16.5604 10.2611 15.7382 11.0834 14.7271 11.0834C13.716 11.0834 12.8937 10.2611 12.8937 9.25002C12.8937 8.23892 13.716 7.41668 14.7271 7.41668Z" fill="currentColor"/>
+        <path d="M7.00909 7.56246L8.45373 8.69455C8.43633 8.87695 8.42533 9.06305 8.42533 9.24915C8.42533 9.43799 8.43633 9.62589 8.45468 9.81474L6.99628 10.9587C6.67363 11.2319 6.59569 11.6884 6.80654 12.0395L8.36853 14.7391C8.58118 15.092 9.01387 15.2442 9.41167 15.0957L11.1103 14.4128C11.4155 14.6309 11.7336 14.8161 12.0728 14.9756L12.3304 16.8043C12.4055 17.2003 12.7657 17.5 13.17 17.5L16.2866 17.5C16.6936 17.5 17.0547 17.1938 17.1308 16.7722L17.3847 14.9627C17.7266 14.8004 18.0484 14.6125 18.3463 14.4017L20.055 15.0892C20.44 15.2331 20.8745 15.0828 21.0908 14.7225L22.6446 12.0339C22.8591 11.6773 22.7812 11.2199 22.4457 10.9367L21.001 9.8046C21.0184 9.6222 21.0294 9.4361 21.0294 9.25001C21.0294 9.06116 21.0184 8.87326 21.0001 8.68441L22.4594 7.54132C22.7821 7.26817 22.86 6.81167 22.6492 6.46058L21.0872 3.76099C20.8745 3.40715 20.4418 3.2559 20.044 3.4044L18.3454 4.0873C18.0402 3.86915 17.7221 3.68395 17.3829 3.52445L17.1253 1.69571C17.0502 1.29972 16.6899 0.999968 16.2857 0.999968L13.1691 0.999968C12.7621 0.999968 12.4009 1.30612 12.3248 1.72781L12.0709 3.5373C11.729 3.69955 11.4073 3.88745 11.1093 4.0983L9.40067 3.4108C9.01477 3.26595 8.58028 3.4172 8.36483 3.77745L6.81019 6.46509C6.59569 6.82181 6.67359 7.27921 7.00909 7.56246ZM9.12748 4.28998L11.0057 5.04532C11.157 5.10767 11.3293 5.08197 11.4586 4.98207C11.817 4.70248 12.2249 4.46417 12.6704 4.27348C12.8171 4.21023 12.9216 4.07458 12.9436 3.91598L13.1691 1.91674L16.2316 1.91674L16.5103 3.90498C16.5332 4.06448 16.6377 4.20108 16.7871 4.26338C17.2262 4.44673 17.6213 4.67863 17.9962 4.97013C18.1246 5.07003 18.2978 5.09478 18.4491 5.03338L20.3273 4.27713L21.8279 6.87037L20.2329 8.12071C20.1055 8.22061 20.0404 8.38011 20.0606 8.54055C20.0917 8.77705 20.1128 9.01355 20.1128 9.25005C20.1128 9.48564 20.0917 9.7203 20.0615 9.94579C20.0404 10.1062 20.1046 10.2675 20.2329 10.3674L21.8279 11.6178L20.3273 14.211L18.449 13.4557C18.2996 13.3943 18.1254 13.419 17.9962 13.5189C17.6378 13.7985 17.2298 14.0368 16.7843 14.2275C16.6377 14.2908 16.5341 14.4255 16.5112 14.5841L16.2866 16.5834L13.2231 16.5834L12.9445 14.5951C12.9216 14.4356 12.8171 14.299 12.6676 14.2367C12.2285 14.0534 11.8335 13.8215 11.4585 13.53C11.3284 13.4291 11.1551 13.4044 11.0057 13.4667L9.12744 14.2239L7.62685 11.6306L9.22184 10.3803C9.34924 10.2804 9.41434 10.1209 9.39418 9.96045C9.36303 9.72395 9.34193 9.48745 9.34193 9.25095C9.34193 9.01535 9.36303 8.7807 9.39328 8.5552C9.41438 8.3948 9.35019 8.23346 9.22188 8.13355L7.62689 6.88321L9.12748 4.28998Z" fill="currentColor"/>
+        <path d="M6.47745 20.25C7.48855 20.25 8.31079 19.4278 8.31079 18.4167C8.31079 17.4056 7.48855 16.5833 6.47745 16.5833C5.46636 16.5833 4.64412 17.4056 4.64412 18.4167C4.64412 19.4278 5.46636 20.25 6.47745 20.25ZM6.47745 17.5C6.98255 17.5 7.3941 17.9116 7.3941 18.4167C7.3941 18.9218 6.98251 19.3333 6.47745 19.3333C5.9724 19.3333 5.56081 18.9217 5.56081 18.4167C5.56076 17.9116 5.97236 17.5 6.47745 17.5Z" fill="currentColor"/>
+        <path d="M2.22971 17.6705C2.23706 17.6769 2.24531 17.6834 2.25261 17.6898L2.93371 18.2178C2.92821 18.2829 2.92546 18.3489 2.92546 18.4167C2.92546 18.4854 2.92731 18.5523 2.93096 18.6202L2.23706 19.1647C2.00056 19.3755 1.94006 19.7147 2.09591 19.9998L2.9154 21.4169C3.0685 21.6983 3.40675 21.8267 3.745 21.713L4.53514 21.3949C4.64974 21.471 4.76429 21.5379 4.88074 21.5957L4.99809 22.406C5.0246 22.7388 5.31244 23 5.65254 23L7.30253 23C7.62518 23 7.90753 22.7608 7.96343 22.4326L8.08443 21.5884C8.20543 21.527 8.32002 21.4619 8.42727 21.3922L9.23392 21.7167C9.53277 21.8249 9.86002 21.7131 10.0433 21.4252L10.8729 19.9888C11.0315 19.6991 10.9646 19.3535 10.7043 19.1445L10.025 18.6129C10.0278 18.5487 10.0296 18.4836 10.0296 18.4167C10.0296 18.3498 10.0278 18.2847 10.025 18.2196L10.7254 17.6705C10.9628 17.4597 11.0233 17.1196 10.8675 16.8336L10.048 15.4165C9.89396 15.1351 9.55481 15.0058 9.21837 15.1204L8.42822 15.4385C8.31362 15.3624 8.19907 15.2955 8.08262 15.2377L7.96072 14.3889C7.90663 14.0672 7.62982 13.8334 7.30257 13.8334L5.65258 13.8334C5.33084 13.8334 5.04759 14.0727 4.99168 14.3999L4.87069 15.245C4.74969 15.3055 4.63694 15.3706 4.53244 15.4394L3.72209 15.1149C3.4251 15.0076 3.0951 15.1195 2.91175 15.4064L2.08126 16.8446C1.93181 17.1205 1.99231 17.4606 2.22971 17.6705ZM3.5983 16.0526L4.42695 16.3835C4.58005 16.444 4.7533 16.4193 4.88345 16.3157C5.0402 16.1901 5.23819 16.0755 5.47285 15.9738C5.61859 15.9105 5.72125 15.7767 5.74419 15.619L5.86884 14.75L7.08709 14.75L7.21084 15.6199C7.23468 15.784 7.34558 15.9224 7.49958 15.982C7.69573 16.0572 7.88823 16.169 8.08718 16.3221C8.21643 16.4211 8.38693 16.444 8.53818 16.3835L9.35677 16.0526L9.96451 17.1031L9.26417 17.6513C9.13677 17.7512 9.07167 17.9098 9.09182 18.0693C9.10648 18.1829 9.11292 18.2966 9.11292 18.4167C9.11292 18.5367 9.10652 18.6504 9.09277 18.7641C9.07262 18.9245 9.13767 19.0831 9.26512 19.1821L9.96546 19.7302L9.35862 20.7807L8.53912 20.4507C8.38877 20.3893 8.21737 20.4141 8.08812 20.5121C7.91947 20.6414 7.71597 20.7587 7.48313 20.8595C7.33738 20.9228 7.23473 21.0566 7.21178 21.2143L7.08713 22.0833L5.87714 22.0833L5.75154 21.2124C5.72864 21.0483 5.61769 20.9099 5.46369 20.8503C5.26754 20.7752 5.07504 20.6633 4.8761 20.5102C4.74775 20.4112 4.57725 20.3874 4.4251 20.4488L3.60651 20.7797L2.99876 19.7292L3.69911 19.1811C3.83385 19.0766 3.89895 18.9052 3.86776 18.7365C3.84761 18.632 3.8421 18.5275 3.8421 18.4166C3.8421 18.2965 3.8577 18.1828 3.87236 18.0701C3.89251 17.9097 3.82651 17.7502 3.69911 17.6512L2.99236 17.103L3.5983 16.0526Z" fill="currentColor"/>
+      </svg>
+    </a>
+    
+        
+  </div>
+  
+</div>
+  
+    
+</div>
+
+
+<div data-target="#nav-comments-settings" class="nav-comments-popup">
+  
+  <button type="button" class="cm-button nav-comments-popup__button" data-cm-tooltip="Только комментарий" onclick="comment_uoption('100_6');">
+    <img src="/static/global/images/cm_last1.png">
+  </button>
+  
+  <button type="button" class="cm-button nav-comments-popup__button cm-button_star active" onclick="comment_uoption('100_11');" data-cm-tooltip="Рейтинг скрыт" data-cm-tooltip-active="Рейтинг показан">
+    <img src="/static/global/images/cm_rating1.png">
+  </button>
+  
+  <button type="button" class="cm-button nav-comments-popup__button cm-button_pignore" data-cm-tooltip="Все комментарии показаны в ленте" data-cm-tooltip-active="Часть комментариев скрыта из ленты">
+    <span class="cm-button__icon"></span>
+  </button>
+  
+  <button type="button" class="cm-button nav-comments-popup__button" data-cm-tooltip="Расширенные настройки">
+    <span class="cm-button__icon">
+      <a href="/personal/settings/" target="_blank">
+        <svg width="17" height="12" viewBox="0 0 17 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect y="1.1875" width="16.002" height="1.6002" rx="0.800098" fill="#294B95"/>
+          <rect y="5.14111" width="16.002" height="1.6002" rx="0.800098" fill="#294B95"/>
+          <rect y="9.09473" width="16.002" height="1.6002" rx="0.800098" fill="#294B95"/>
+          <circle cx="13" cy="2" r="1.5" fill="#EFEFEF" stroke="#8D8D8D"/>
+          <circle cx="3" cy="6" r="1.5" fill="#EFEFEF" stroke="#8D8D8D"/>
+          <circle cx="8" cy="10" r="1.5" fill="#EFEFEF" stroke="#8D8D8D"/>
+        </svg>
+      </a>
+    </span>
+  </button>
+  
+</div>
+
+
+<main class="post__main post__main_full" role="main">
+  
+  <div class="post__box">
+    <div class="list">
+      
+      <div class="comments">
+        <div class="comments__list">
+          
+          
+          
+<div class="comments__item comments__item897832">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/3133/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/0/6/3133_e886b.jpg" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/3133/">Игорь Чирков</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 42px;"></div><div class="half"></div></div>      </div>
+      
+      <div class="comments__text">Рад за них, но не очень искренно)</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/dow_jones_50000_115649/">Dow Jones 50000</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 12:08</time>
+        
+        <div class="comments__like comments__like897832">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897832', '1');"></span>
+          <span class="comments__like-count" title="0/0">
+                      </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897832', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/dow_jones_50000_115649/?comm_find=897832">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897832', '115649'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897832" title="Уведомлять об ответах" onclick="comment_subs('897832'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897832" onclick="comment_fav('897832');">В избранное</div>
+        <div class="comments__abuse comments__abuse897832" onclick="comment_abuse('897832');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897831">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/4530/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/eava.png" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/4530/">Дмитрий Иванов</a>
+                    <span>-></span>
+          <a href="/personal/80395/">Алекандр Холкин</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 98px;"></div><div class="half"></div></div>      </div>
+      
+      <div class="comments__text">Так таргеты всегда субъективны. Ибо плод конкретного автора.</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/indeksnyiy_obzor_fevral_2026_vyirastet_li_indeks_v_rublyah_esli_peregovoryi_ne_uvenchayutsya_uspehom_115628/">Индексный обзор февраль 2026. Вырастет ли индекс в рублях если переговоры не увенчаются успехом?</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 12:03</time>
+        
+        <div class="comments__like comments__like897831">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897831', '1');"></span>
+          <span class="comments__like-count" title="0/0">
+                      </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897831', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/indeksnyiy_obzor_fevral_2026_vyirastet_li_indeks_v_rublyah_esli_peregovoryi_ne_uvenchayutsya_uspehom_115628/?comm_find=897831">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897831', '115628'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897831" title="Уведомлять об ответах" onclick="comment_subs('897831'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897831" onclick="comment_fav('897831');">В избранное</div>
+        <div class="comments__abuse comments__abuse897831" onclick="comment_abuse('897831');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897830">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/35414/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/1/30/35414_b7bfc.jpg" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/35414/">Fedor.Investor</a>
+                    <span>-></span>
+          <a href="/personal/21784/">Ленар Рахимов</a>
+                  </div>
+        <div class="rating_wrap rating1"><div class="half"></div></div>      </div>
+      
+      <div class="comments__text">Так доходы с ОФЗ уже сидит же в P/E 3+<br/>Без ОФЗ были бы совсем другие цифры</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/rezultatyi_bankov_za_12_mesyatsev_2025_po_rsbu_kontsentratsiya_rastet_115610/">Результаты банков за 12 месяцев 2025 по РСБУ. Концентрация растет</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 11:46</time>
+        
+        <div class="comments__like comments__like897830">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897830', '1');"></span>
+          <span class="comments__like-count" title="0/0">
+                      </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897830', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/rezultatyi_bankov_za_12_mesyatsev_2025_po_rsbu_kontsentratsiya_rastet_115610/?comm_find=897830">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897830', '115610'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897830" title="Уведомлять об ответах" onclick="comment_subs('897830'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897830" onclick="comment_fav('897830');">В избранное</div>
+        <div class="comments__abuse comments__abuse897830" onclick="comment_abuse('897830');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897829">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/1974/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/eava.png" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/1974/">Alexey Expatov</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 126px;"></div><div class="half"></div></div>      </div>
+      
+      <div class="comments__text">Надеюсь задорого <img src="/static/smiles/1.png"> ибо ненавистный газ надо деньгами отмывать</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/rossiya_v_yanvare_postavila_rekordnyiy_ob_em_spg_v_evropu_dannyie_bruegel_tass_115647/">РОССИЯ В ЯНВАРЕ ПОСТАВИЛА РЕКОРДНЫЙ ОБЪЕМ СПГ В ЕВРОПУ - ДАННЫЕ BRUEGEL — ТАСС</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 11:32</time>
+        
+        <div class="comments__like comments__like897829">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897829', '1');"></span>
+          <span class="comments__like-count comments__like-count-plus" title="1/0">
+            1+          </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897829', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/rossiya_v_yanvare_postavila_rekordnyiy_ob_em_spg_v_evropu_dannyie_bruegel_tass_115647/?comm_find=897829">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897829', '115647'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897829" title="Уведомлять об ответах" onclick="comment_subs('897829'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897829" onclick="comment_fav('897829');">В избранное</div>
+        <div class="comments__abuse comments__abuse897829" onclick="comment_abuse('897829');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897828">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/7350/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/eava.png" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/7350/">Андрей Иванов</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 126px;"></div></div>      </div>
+      
+      <div class="comments__text">Сезон охоты на активы самолета официально открыт</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/samolet_ne_smog_razmestit_vyipusk_obligatsiy_na_1_mlrd_rub_dohodnost_23_7_okazalas_nedostatochnoy_interfaks_115645/">Самолет не смог разместить выпуск облигаций на 1 млрд руб, доходность 23,7% оказалась недостаточной - ИНТЕРФАКС</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 11:16</time>
+        
+        <div class="comments__like comments__like897828">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897828', '1');"></span>
+          <span class="comments__like-count" title="0/0">
+                      </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897828', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/samolet_ne_smog_razmestit_vyipusk_obligatsiy_na_1_mlrd_rub_dohodnost_23_7_okazalas_nedostatochnoy_interfaks_115645/?comm_find=897828">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897828', '115645'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897828" title="Уведомлять об ответах" onclick="comment_subs('897828'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897828" onclick="comment_fav('897828');">В избранное</div>
+        <div class="comments__abuse comments__abuse897828" onclick="comment_abuse('897828');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897827">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/5181/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/0/10/5181_91e19.jpg" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/5181/">Андрей</a>
+                    <span>-></span>
+          <a href="/personal/1507/">Белоусов Иван</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 42px;"></div></div>      </div>
+      
+      <div class="comments__text">Это было ну прям очень очевидно. Начиная с момента снятия Шойгу с должности в начале 24г.<br/>Кроме админ.ресурса в компании ну буквально всё было плохо с самого начала. Без него она нежизнеспособна<br/><br/>Собственно, график стоимости акций эту мысль подтверждает</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/samolet_ne_smog_razmestit_vyipusk_obligatsiy_na_1_mlrd_rub_dohodnost_23_7_okazalas_nedostatochnoy_interfaks_115645/">Самолет не смог разместить выпуск облигаций на 1 млрд руб, доходность 23,7% оказалась недостаточной - ИНТЕРФАКС</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 11:15</time>
+        
+        <div class="comments__like comments__like897827">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897827', '1');"></span>
+          <span class="comments__like-count comments__like-count-plus" title="2/0">
+            2+          </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897827', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/samolet_ne_smog_razmestit_vyipusk_obligatsiy_na_1_mlrd_rub_dohodnost_23_7_okazalas_nedostatochnoy_interfaks_115645/?comm_find=897827">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897827', '115645'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897827" title="Уведомлять об ответах" onclick="comment_subs('897827'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897827" onclick="comment_fav('897827');">В избранное</div>
+        <div class="comments__abuse comments__abuse897827" onclick="comment_abuse('897827');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897826">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/78061/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/eava.png" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/78061/">Александр</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 28px;"></div></div>      </div>
+      
+      <div class="comments__text">Шойгу, Воробьев …?<br/>Будут ли вопросы к прошлым бенефициарам компании?</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/samolet_ne_smog_razmestit_vyipusk_obligatsiy_na_1_mlrd_rub_dohodnost_23_7_okazalas_nedostatochnoy_interfaks_115645/">Самолет не смог разместить выпуск облигаций на 1 млрд руб, доходность 23,7% оказалась недостаточной - ИНТЕРФАКС</a></div>
+      
+            
+      <div class="attachment">
+        <div class="attachment__list">
+          
+                    
+          <div class="attachment__item">
+            <img class="attachment__photo" src="https://cdn.alenka.capital/data/post/comment/115645/pv_c4efd53301ec033c365d473f3b722279.jpeg" alt="" />
+            <a class="attachment__zoom" href="https://cdn.alenka.capital/data/post/comment/115645/c4efd53301ec033c365d473f3b722279.jpeg" onclick="return hs.expand(this)"></a>
+          </div>
+          
+                    
+        </div>
+      </div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 11:14</time>
+        
+        <div class="comments__like comments__like897826">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897826', '1');"></span>
+          <span class="comments__like-count comments__like-count-plus" title="1/0">
+            1+          </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897826', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/samolet_ne_smog_razmestit_vyipusk_obligatsiy_na_1_mlrd_rub_dohodnost_23_7_okazalas_nedostatochnoy_interfaks_115645/?comm_find=897826">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897826', '115645'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897826" title="Уведомлять об ответах" onclick="comment_subs('897826'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897826" onclick="comment_fav('897826');">В избранное</div>
+        <div class="comments__abuse comments__abuse897826" onclick="comment_abuse('897826');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897825">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/3116/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/eava.png" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/3116/">Evgenii Ivanov</a>
+                    <span>-></span>
+          <a href="/personal/628/">Роман Даянов</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 126px;"></div><div class="half"></div></div>      </div>
+      
+      <div class="comments__text">Минфин устранил ситуацию с повышенным НДФЛ при продаже акций X5 и «Русагро» - РБК <a href="https://alenka.capital/post/minfin_ustranil_situatsiyu_s_povyishennyim_ndfl_pri_prodaje_aktsiy_x5_i_rusagro_rbk_114194/">alenka.capital</a>  &quot;Минфин устранил ситуацию с повышенным НДФЛ при продаже акций X5 и «Русагро» - РБК&quot;</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/gruppa_rusgaro_proizvodstvennyiy_otchet_za_4_y_kvartal_2025_udvoenie_vyiruchki_za_4_goda_i_utroenie_za_6_let_115626/">Группа Русгаро производственный отчет за 4-й квартал 2025. Удвоение выручки за 4 года и утроение за 6 лет</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 11:05</time>
+        
+        <div class="comments__like comments__like897825">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897825', '1');"></span>
+          <span class="comments__like-count comments__like-count-plus" title="1/0">
+            1+          </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897825', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/gruppa_rusgaro_proizvodstvennyiy_otchet_za_4_y_kvartal_2025_udvoenie_vyiruchki_za_4_goda_i_utroenie_za_6_let_115626/?comm_find=897825">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897825', '115626'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897825" title="Уведомлять об ответах" onclick="comment_subs('897825'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897825" onclick="comment_fav('897825');">В избранное</div>
+        <div class="comments__abuse comments__abuse897825" onclick="comment_abuse('897825');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897824">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/39660/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/eava.png" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/39660/">Дмитрий Да</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 56px;"></div></div>      </div>
+      
+      <div class="comments__text">Звучит, как издевательство. Уже хочется проснуться с новостью &quot;РФ, США и Украина подписали мирное соглашение&quot;. Но, судя по тому, что говорят разные источники, прогресс действительно есть. Якобы Зеленский уже согласился на вывод войск, он принципиально против, чтобы на эти территории входила РФ даже в виде Росгвардии, он пытался сделать эту территорию подмандатной трамповскому Совету Мира. И якобы европейцы не будут никакие войска свои вводить ни на какие базы - их силы &quot;быстрого реагирования&quot; будут в Польше и Румынии, а если в буфферных зонах будут чьи-то войска, то это казахо-китайцы или что-то подобное.</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/peregovoryi_ssha_s_rf_i_ukrainoy_idut_otlichno_tramp_115648/">ПЕРЕГОВОРЫ США С РФ И УКРАИНОЙ ИДУТ ОТЛИЧНО — ТРАМП</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 11:05</time>
+        
+        <div class="comments__like comments__like897824">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897824', '1');"></span>
+          <span class="comments__like-count comments__like-count-plus" title="9/0">
+            9+          </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897824', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/peregovoryi_ssha_s_rf_i_ukrainoy_idut_otlichno_tramp_115648/?comm_find=897824">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897824', '115648'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897824" title="Уведомлять об ответах" onclick="comment_subs('897824'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897824" onclick="comment_fav('897824');">В избранное</div>
+        <div class="comments__abuse comments__abuse897824" onclick="comment_abuse('897824');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+          
+<div class="comments__item comments__item897823">
+  
+  <div class="comments__body">
+    
+    <div class="comments__side">
+      <div class="comments__avatar">
+        <a href="/personal/4530/"><img class="comments__photo" src="https://cdn.alenka.capital/data/user/eava.png" alt="" /></a>
+      </div>
+    </div>
+    
+    <div class="comments__main">
+      
+      <div class="comments__author rating">
+        <div>
+          <a href="/personal/4530/">Дмитрий Иванов</a>
+                    <span>-></span>
+          <a href="/personal/3081/">Нефедов Алексей</a>
+                  </div>
+        <div class="rating_wrap rating1"><div style="width: 98px;"></div><div class="half"></div></div>      </div>
+      
+      <div class="comments__text">В этом году ему попросту не с чего: Минимум 25% он таки распределит (капитала хватает и ОСК ждёт). Конверт префов в любое время рынок не напугает. При этом и ЧП-2026 ожидается выше текущей.<br/>Т.о. один позитив пока на горизонте. То что бумага была на своей репутации излишне перепродана - ожидаемо сыграло с инвесторами в перекос соотношения прибыль/риск, которое теперь едет к своей объективной цене выше сотки. Которую вероятно пробъёт ещё весной, т.е. даже до рекомендации. Ну а после рекомы будет дополнительный всплеск спроса в моменте. Даже от четверти ЧП, не говоря о большей доле.</div>
+      
+      <div style="margin: 7px 0px 0px 0px;"><a href="/post/vneshnetorgovyiy_lokomotiv_prodoljaet_put_k_trehznachnosti_115638/">Внешнеторговый локомотив продолжает путь к трехзначности</a></div>
+      
+            
+      <div class="comments__info">
+        
+        <time class="comments__time">07.02.2026, 11:03</time>
+        
+        <div class="comments__like comments__like897823">
+          <span class="comments__like-icon comments__like-up" title="Нравится!" onclick="comment_like('897823', '1');"></span>
+          <span class="comments__like-count" title="0/0">
+                      </span>
+          <span class="comments__like-icon comments__like-down" title="Не нравится!" onclick="comment_like('897823', '2');"></span>
+        </div>
+        
+        <div class="comments__options">
+          
+          <a class="comments__option comments__option_go" href="/post/vneshnetorgovyiy_lokomotiv_prodoljaet_put_k_trehznachnosti_115638/?comm_find=897823">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ПЕРЕЙТИ</span>
+          </a>
+          
+                    <a class="comments__option comments__option_answer" href="#" onclick="comment_ans('897823', '115638'); return false;">
+            <span class="comments__option-icon"></span>
+            <span class="comments__option-label">ОТВЕТИТЬ</span>
+          </a>
+                    
+        </div>
+        
+      </div>
+      
+    </div>
+    
+    <div class="comments__settings">
+      <span class="comments__settings-icon"></span>
+      <div class="comments__settings-data">
+        <div class="comments__settings-close"></div>
+        <div class="comments__subs comments__subs897823" title="Уведомлять об ответах" onclick="comment_subs('897823'); return false;">Увед. об ответах</div>
+        <div class="comments__fav comments__fav897823" onclick="comment_fav('897823');">В избранное</div>
+        <div class="comments__abuse comments__abuse897823" onclick="comment_abuse('897823');">Жалоба</div>              </div>
+    </div>
+    
+  </div>
+  
+  
+</div>
+          
+                    
+                    
+        </div>
+        
+        <form class="comments__body" id="form_comment">
+          <div class="comments__side">
+            <a class="comments__avatar" href="/personal/">
+              <img class="comments__photo" src="https://cdn.alenka.capital/data/user/3/32/76287_0dbec.jpg" alt="badcoffee" />
+            </a>
+          </div>
+          <div class="comments__main">
+            <div class="comments__area">
+              <textarea name="FormPostComment[com_text]" class="comments__textarea" placeholder="Оставить комментарий ..."></textarea>
+              <label class="comments__attache">
+                <input class="comments__attache-file" type="file" name="FormPostComment[img_upload]" /><i class="fa fa-file" aria-hidden="true"></i>
+              </label>
+            </div>
+            <div class="attachment">
+              <div class="attachment__list"></div>
+            </div>
+            <div class="comments__actions">
+              <div class="comments__row">
+                <div class="comments__action">
+                  <input type="hidden" name="FormPostComment[post_id]" value="0" />
+                  <input type="hidden" name="FormPostComment[com_pid]" value="0" />
+                  <input type="hidden" name="FormPostComment[feed]" value="1" />
+                  <input type="submit" class="comments__button" value="Отправить" disabled="disabled" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+        
+      </div>
+      
+      <div class="paginator"><ul class="paginator__list"><li class="paginator__item"><a class="paginator__link paginator__link_active" href="/comment/last/page_1/">1</a></li>
+<li class="paginator__item"><a class="paginator__link" href="/comment/last/page_2/">2</a></li>
+<li class="paginator__item"><a class="paginator__link" href="/comment/last/page_3/">3</a></li>
+<li class="paginator__item"><span class="paginator__ellipsis">...</span></li>
+<li class="paginator__item"><a class="paginator__link" href="/comment/last/page_72742/">72742</a></li>
+<li class="paginator__item"><a class="paginator__next" href="/comment/last/page_2/"></a></li></ul></div>      
+    </div>
+    
+  </div>
+  
+</main>
+    
+    </div></div>    
+    <a href="#" class="layout__up">Scroll to Top</a>
+    
+  </main>
+  
+  
+<nav class="mobile-menu">
+  <ul class="mobile-menu__list">
+    <li class="mobile-menu__item mobile-menu__item_news">
+      <a class="mobile-menu__link" href="/category/lenta_novostey_596/">
+        <div class="mobile-menu__view">
+          <svg class="mobile-menu__icon" viewBox="0 0 842 842" xmlns="http://www.w3.org/2000/svg">
+            <path class="icon-fill" fill-rule="nonzero" d="M791.994 305.974v486.052H50.006V305.974h741.988zM842 256H0v586h842V256z"/>
+            <path class="icon-stroke" stroke="#000" stroke-width="50" d="M67.9 190h708m-649-80h590"/>
+          </svg>
+        </div>
+        <div class="mobile-menu__label">Лента новостей</div>
+      </a>
+    </li>
+    <li class="mobile-menu__item mobile-menu__item_lastpost">
+      <a class="mobile-menu__link" href="/category/lastpost/">
+        <div class="mobile-menu__icon">
+          <svg class="mobile-menu__icon" viewBox="0 0 842 842" xmlns="http://www.w3.org/2000/svg">
+            <path class="icon-stroke" stroke="#000" stroke-width="50" d="M120.823 171.285h225.271M120.824 294.1h225.27m-225.27 122.925H587.63M120.823 539.84H587.63M120.823 662.655H587.63"/>
+            <path class="icon-fill" fill="#000" fill-rule="nonzero" d="M652.356 57.322V785.58H56.096V57.322h596.26zM707.678 2H.775v838.902h706.903V2z"/>
+            <path class="icon-fill" fill="#000" fill-rule="nonzero" d="M786.567 445.793V785.69h-78.446V445.793h78.446zm55.322-55.322H652.8v450.542h189.09V390.47zM529.874 201.712v66.94h-78.447v-67.05h78.447v.11zm55.322-55.322h-188.98v177.584h189.09V146.39h-.11z"/>
+          </svg>
+        </div>
+        <div class="mobile-menu__label">Новое на сайте</div>
+      </a>
+    </li>
+  </ul>
+</nav>
+  
+<footer class="footer" role="contentinfo">
+  
+  <ul class="footer__nav">
+        <li class="footer__nav-item">
+      <a href="/category/top/" class="footer__nav-link">100%-ный шоколад</a>
+    </li>
+        <li class="footer__nav-item">
+      <a href="/category/razvitie_proekta_873/" class="footer__nav-link">Развитие проекта</a>
+    </li>
+        <li class="footer__nav-item">
+      <a href="/info/map/" class="footer__nav-link">ALЁNKA в мире</a>
+    </li>
+        <li class="footer__nav-item">
+      <a href="/info/about/" class="footer__nav-link">О проекте</a>
+    </li>
+      </ul>
+  
+  
+  <ul class="footer__nav">
+        <li class="footer__nav-item">
+      <a href="/post/usloviya_obslujivaniya_34707/" class="footer__nav-link">Условия обслуживания</a>
+    </li>
+        <li class="footer__nav-item">
+      <a href="/post/politika_v_otnoshenii_obrabotki_personalnyih_dannyih_107250/" class="footer__nav-link">Политика в отношении обработки персональных данных</a>
+    </li>
+        <li class="footer__nav-item">
+      <a href="/info/packs/" class="footer__nav-link">Тарифы</a>
+    </li>
+        <li class="footer__nav-item">
+      <a href="/info/contact/" class="footer__nav-link">Контакты</a>
+    </li>
+      </ul>
+  
+  <div class="footer__content">
+    <div class="footer__text">
+      Все права на информацию и аналитические материалы защищены в соответствии с законодательством Российской Федерации. Воспроизведение, распространение и иное использование информации, размещенной на настоящем сайте, или ее части допускается только с предварительного письменного согласия. Вся информация предназначена исключительно для информационных целей. ООО "Аленка Капитал" не осуществляет деятельность по инвестиционному консультированию и не является инвестиционным советником.
+    </div>
+  </div>
+  
+  <div class="footer__copyright">© ООО «Аленка Капитал» 2013—2026. ИНН 2465125454</div>
+  
+</footer>
+  
+</div>
+
+<div class="print_blocked" style="display: none;">
+  Печать документа заблокирована администратором сайта
+</div>
+
+<script src="/assets/df045a7a/yii.js"></script>
+</body>
+</html>
