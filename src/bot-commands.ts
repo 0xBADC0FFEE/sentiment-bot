@@ -92,7 +92,7 @@ export function registerCommands(bot: Bot, store: Store) {
     if (!isAdmin(ctx.from?.id)) return
     const arg = ctx.match?.trim()
     const durationMs = arg ? (parseDuration(arg) ?? 86_400_000) : 86_400_000
-    const sourceName = (await store.getUserSource(ctx.chat.id.toString())) ?? getSources()[0].name
+    const sourceName = (await store.getUserSource(ctx.chat.id.toString())) || getSources()[0].name
     await handleTrends(ctx, store, sourceName, durationMs)
   })
 
@@ -103,7 +103,7 @@ export function registerCommands(bot: Bot, store: Store) {
     const parts = arg ? arg.split(/\s+/) : []
     const durationMs = parts.length ? (parseDuration(parts[0]) ?? 86_400_000) : 86_400_000
     const adhocTopic = parts.slice(1).join(" ").trim() || undefined
-    const sourceName = (await store.getUserSource(ctx.chat.id.toString())) ?? getSources()[0].name
+    const sourceName = (await store.getUserSource(ctx.chat.id.toString())) || getSources()[0].name
     await handleTopics(ctx, store, sourceName, durationMs, adhocTopic)
   })
 
@@ -123,12 +123,12 @@ export function registerCommands(bot: Bot, store: Store) {
         break
       }
       case "trends": {
-        const sourceName = (await store.getUserSource(chatId)) ?? getSources()[0].name
+        const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
         await handleTrends(ctx, store, sourceName, action.durationMs)
         break
       }
       case "topics": {
-        const sourceName = (await store.getUserSource(chatId)) ?? getSources()[0].name
+        const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
         await handleTopics(ctx, store, sourceName, action.durationMs)
         break
       }
