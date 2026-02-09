@@ -2,7 +2,7 @@ import type { Bot, Context } from "grammy"
 import ms from "ms"
 import { hostname } from "node:os"
 import type { Store } from "./store.js"
-import { startKeyboard, sourceKeyboard, resolveButton } from "./keyboard.js"
+import { startKeyboard, sourceKeyboard, promptKeyboard, resolveButton } from "./keyboard.js"
 import { getSource, getSources } from "./sources/registry.js"
 import { runTrends, runTopics, runAuthors, runHot } from "./pipeline.js"
 import { followUp } from "./analyzer.js"
@@ -119,6 +119,34 @@ export function registerCommands(bot: Bot, store: Store) {
     await handleTopics(ctx, store, sourceName, durationMs, adhocTopic)
   })
 
+  // Inline prompt buttons
+  bot.on("callback_query:data", async (ctx) => {
+    if (!isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery()
+    const data = ctx.callbackQuery.data
+    if (!data.startsWith("prompt:")) return ctx.answerCallbackQuery()
+
+    const chatId = ctx.chat!.id.toString()
+    const durationMs = await store.getPending(chatId)
+    if (!durationMs) {
+      await ctx.answerCallbackQuery({ text: "Сессия истекла. Выберите период заново." })
+      return
+    }
+
+    await ctx.answerCallbackQuery()
+
+    const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
+    let hasSession = false
+    if (data === "prompt:trends") {
+      hasSession = await handleTrends(ctx, store, sourceName, durationMs)
+    } else if (data === "prompt:topics") {
+      hasSession = await handleTopics(ctx, store, sourceName, durationMs)
+    }
+
+    if (hasSession) {
+      await store.clearPending(chatId)
+    }
+  })
+
   // Text messages: keyboard buttons or follow-up
   bot.on("message:text", async (ctx) => {
     const text = ctx.message.text
@@ -136,14 +164,12 @@ export function registerCommands(bot: Bot, store: Store) {
           await ctx.reply(`${action.source.label} выбран.`, { reply_markup: sourceKeyboard(action.source) })
           break
         }
-        case "trends": {
-          const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
-          await handleTrends(ctx, store, sourceName, action.durationMs)
-          break
-        }
-        case "topics": {
-          const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
-          await handleTopics(ctx, store, sourceName, action.durationMs)
+        case "analysis": {
+          await store.setPending(chatId, action.durationMs)
+          const topics = await store.getTrackedTopics()
+          await ctx.reply("Выберите анализ или введите свой промпт:", {
+            reply_markup: promptKeyboard(topics.length > 0),
+          })
           break
         }
         case "authors": {
@@ -167,12 +193,23 @@ export function registerCommands(bot: Bot, store: Store) {
       return
     }
 
-    // Free text → follow-up
+    // Free text → custom prompt or follow-up
     if (!isAdmin(ctx.from?.id)) return
     const chatId = ctx.chat.id.toString()
+
+    // Pending analysis → treat text as custom prompt
+    const durationMs = await store.getPending(chatId)
+    if (durationMs) {
+      const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
+      const hasSession = await handleTrends(ctx, store, sourceName, durationMs, text)
+      if (hasSession) await store.clearPending(chatId)
+      return
+    }
+
+    // Existing session → follow-up
     const session = await store.getSession(chatId)
     if (!session) {
-      await ctx.reply("Нет активного контекста. Запустите /trends или /topics.")
+      await ctx.reply("Нет активного контекста. Выберите период анализа.")
       return
     }
 
@@ -187,7 +224,7 @@ export function registerCommands(bot: Bot, store: Store) {
   })
 }
 
-async function handleTrends(ctx: Context, store: Store, sourceName: string, durationMs: number, customPrompt?: string) {
+async function handleTrends(ctx: Context, store: Store, sourceName: string, durationMs: number, customPrompt?: string): Promise<boolean> {
   try {
     const chatId = ctx.chat!.id.toString()
     const since = new Date(Date.now() - durationMs)
@@ -200,13 +237,15 @@ async function handleTrends(ctx: Context, store: Store, sourceName: string, dura
     if (!result.sent) {
       await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет трендов.`)
     }
+    return !!result.session
   } catch (e) {
     console.error("Trends error:", e)
     await ctx.reply(`❌ Ошибка: ${String(e)}`)
+    return false
   }
 }
 
-async function handleTopics(ctx: Context, store: Store, sourceName: string, durationMs: number, adhocTopic?: string) {
+async function handleTopics(ctx: Context, store: Store, sourceName: string, durationMs: number, adhocTopic?: string): Promise<boolean> {
   try {
     const chatId = ctx.chat!.id.toString()
     const since = new Date(Date.now() - durationMs)
@@ -220,9 +259,11 @@ async function handleTopics(ctx: Context, store: Store, sourceName: string, dura
     if (!result.sent) {
       await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет данных.`)
     }
+    return !!result.session
   } catch (e) {
     console.error("Topics error:", e)
     await ctx.reply(`❌ Ошибка: ${String(e)}`)
+    return false
   }
 }
 

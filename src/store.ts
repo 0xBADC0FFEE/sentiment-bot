@@ -115,6 +115,19 @@ export class Store {
     await this.redis.set(this.key(`hot:seen:${commentId}`), 1, { ex: 259200 })
   }
 
+  // Pending analysis (5-minute TTL)
+  async setPending(chatId: string, durationMs: number): Promise<void> {
+    await this.redis.set(this.key(`user:${chatId}:pending`), durationMs, { ex: 300 })
+  }
+
+  async getPending(chatId: string): Promise<number | null> {
+    return this.redis.get<number>(this.key(`user:${chatId}:pending`))
+  }
+
+  async clearPending(chatId: string): Promise<void> {
+    await this.redis.del(this.key(`user:${chatId}:pending`))
+  }
+
   // Chat session (1-hour TTL)
   async getSession(chatId: string): Promise<Session | null> {
     return this.redis.get<Session>(this.key(`chat:session:${chatId}`))

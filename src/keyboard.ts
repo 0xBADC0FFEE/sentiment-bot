@@ -1,4 +1,4 @@
-import { Keyboard } from "grammy"
+import { InlineKeyboard, Keyboard } from "grammy"
 import type { Source } from "./sources/types.js"
 import { getSources } from "./sources/registry.js"
 
@@ -7,11 +7,11 @@ export const BTN = {
   back: "◀️ Назад",
 } as const
 
-const DURATION_LABELS = {
-  "24h": { trends: "📊 24ч", topics: "🏷️ 24ч" },
-  "3d": { trends: "📊 3д", topics: "🏷️ 3д" },
-  "7d": { trends: "📊 7д", topics: "🏷️ 7д" },
-} as const
+const DURATION_LABELS: Record<string, string> = {
+  "24h": "24ч",
+  "3d": "3д",
+  "7d": "7д",
+}
 
 export const DURATIONS: Record<string, number> = {
   "24h": 86_400_000,
@@ -37,18 +37,13 @@ export function startKeyboard(): Keyboard {
 export function sourceKeyboard(source: Source): Keyboard {
   const kb = new Keyboard()
   const caps = source.capabilities
+  const hasAnalysis = caps.includes("trends") || caps.includes("topics")
 
-  if (caps.includes("trends")) {
-    kb.text(DURATION_LABELS["24h"].trends)
-      .text(DURATION_LABELS["3d"].trends)
-      .text(DURATION_LABELS["7d"].trends)
-      .row()
-  }
-  if (caps.includes("topics")) {
-    kb.text(DURATION_LABELS["24h"].topics)
-      .text(DURATION_LABELS["3d"].topics)
-      .text(DURATION_LABELS["7d"].topics)
-      .row()
+  if (hasAnalysis) {
+    for (const [, label] of Object.entries(DURATION_LABELS)) {
+      kb.text(label)
+    }
+    kb.row()
   }
 
   const extraCaps = caps.filter((c) => c !== "trends" && c !== "topics")
@@ -62,12 +57,17 @@ export function sourceKeyboard(source: Source): Keyboard {
   return kb.persistent().resized()
 }
 
+export function promptKeyboard(hasTopics: boolean): InlineKeyboard {
+  const kb = new InlineKeyboard().text("📊 Тренды", "prompt:trends")
+  if (hasTopics) kb.text("🏷️ Топики", "prompt:topics")
+  return kb
+}
+
 // --- Button label → action resolution ---
 
 export type ButtonAction =
   | { type: "source"; source: Source }
-  | { type: "trends"; durationMs: number }
-  | { type: "topics"; durationMs: number }
+  | { type: "analysis"; durationMs: number }
   | { type: "authors" }
   | { type: "hot" }
   | { type: "status" }
@@ -82,10 +82,9 @@ export function resolveButton(text: string): ButtonAction {
   const source = getSources().find((s) => s.label === text)
   if (source) return { type: "source", source }
 
-  // Trends duration?
-  for (const [key, labels] of Object.entries(DURATION_LABELS)) {
-    if (text === labels.trends) return { type: "trends", durationMs: DURATIONS[key] }
-    if (text === labels.topics) return { type: "topics", durationMs: DURATIONS[key] }
+  // Duration?
+  for (const [key, label] of Object.entries(DURATION_LABELS)) {
+    if (text === label) return { type: "analysis", durationMs: DURATIONS[key] }
   }
 
   // Capability buttons?
