@@ -19,12 +19,10 @@ export interface PipelineOpts {
   since?: Date
   extraTopics?: string[]
   customPrompt?: string
-  onLog?: (msg: string) => void
 }
 
 function resolveOpts(opts: PipelineOpts) {
   return {
-    log: opts.onLog ?? (() => {}),
     store: opts.store ?? new Store(),
     bot: createBot(opts.botToken ?? telegram.botToken),
   }
@@ -39,35 +37,35 @@ export interface TrendsResult {
 }
 
 export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<TrendsResult> {
-  const { log, store, bot } = resolveOpts(opts)
+  const { store, bot } = resolveOpts(opts)
   const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
   const source = getSource(sourceName)
 
-  log(`📥 Fetching ${source.label} messages since ${since.toISOString()}...`)
+  console.log(`📥 Fetching ${source.label} messages since ${since.toISOString()}...`)
   const messages = await source.fetchMessages(since)
-  log(`  ${messages.length} messages`)
+  console.log(`  ${messages.length} messages`)
 
   if (messages.length < MIN_ITEMS) {
-    log(`  Need ≥${MIN_ITEMS}, skipping`)
+    console.log(`  Need ≥${MIN_ITEMS}, skipping`)
     return { messages: messages.length, sent: false }
   }
 
   const prompt = opts.customPrompt ? `${opts.customPrompt}\n\nДанные:\n\n{data}` : TRENDS_PROMPT
 
-  log(`🧠 Analyzing trends...`)
+  console.log(`🧠 Analyzing trends...`)
   const result = await analyze(toItems(messages), { prompt })
 
   if (!result) {
-    log("  No meaningful trends")
+    console.log("  No meaningful trends")
   } else {
     const range = dateRange(messages)
     const alert: Alert = { type: "trends", summary: result.text, dateRange: range, itemCount: result.itemCount }
     const subs = await store.getSubscribers()
-    log(`📢 Sending to ${subs.length} subscribers`)
+    console.log(`📢 Sending to ${subs.length} subscribers`)
     await broadcast(bot, subs, formatAlert(alert))
   }
 
-  log("✅ Done")
+  console.log("✅ Done")
   return { messages: messages.length, sent: !!result, session: result?.session }
 }
 
@@ -80,40 +78,40 @@ export interface TopicsResult {
 }
 
 export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Promise<TopicsResult> {
-  const { log, store, bot } = resolveOpts(opts)
+  const { store, bot } = resolveOpts(opts)
   const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
   const source = getSource(sourceName)
 
   const topics = opts.extraTopics?.length ? opts.extraTopics : await store.getTrackedTopics()
   if (topics.length === 0) {
-    log("❌ No topics tracked. Use /topic <name>.")
+    console.log("❌ No topics tracked. Use /topic <name>.")
     return { messages: 0, sent: false }
   }
 
-  log(`🏷️ Analyzing topics [${topics.join(", ")}]...`)
+  console.log(`🏷️ Analyzing topics [${topics.join(", ")}]...`)
 
-  log(`📥 Fetching ${source.label} messages since ${since.toISOString()}...`)
+  console.log(`📥 Fetching ${source.label} messages since ${since.toISOString()}...`)
   const messages = await source.fetchMessages(since)
-  log(`  ${messages.length} messages`)
+  console.log(`  ${messages.length} messages`)
 
   if (messages.length < MIN_ITEMS) {
-    log(`  Need ≥${MIN_ITEMS}, skipping`)
+    console.log(`  Need ≥${MIN_ITEMS}, skipping`)
     return { messages: messages.length, sent: false }
   }
 
   const result = await analyze(toItems(messages), { prompt: buildTopicsPrompt(topics) })
 
   if (!result) {
-    log("  No topic data")
+    console.log("  No topic data")
   } else {
     const range = dateRange(messages)
     const alert: Alert = { type: "topics", summary: result.text, dateRange: range, itemCount: result.itemCount }
     const subs = await store.getSubscribers()
-    log(`📢 Sending to ${subs.length} subscribers`)
+    console.log(`📢 Sending to ${subs.length} subscribers`)
     await broadcast(bot, subs, formatAlert(alert))
   }
 
-  log("✅ Done")
+  console.log("✅ Done")
   return { messages: messages.length, sent: !!result, session: result?.session }
 }
 
@@ -128,15 +126,15 @@ const COMMENTS_PER_PAGE = 10
 const START_PAGE_BUFFER = 2
 
 export async function runAuthors(opts: PipelineOpts = {}): Promise<AuthorsResult> {
-  const { log, store, bot } = resolveOpts(opts)
+  const { store, bot } = resolveOpts(opts)
 
-  log("🔑 Auth...")
+  console.log("🔑 Auth...")
   const cookie = await alenkaAuth(store)
 
   const page1Html = await fetchCommentPage("/comment/last/", cookie, 1)
   const page1Comments = parseComments(page1Html)
   if (page1Comments.length === 0) {
-    log("  No comments found")
+    console.log("  No comments found")
     return { comments: 0, alerts: 0 }
   }
   const latestId = Number(page1Comments[0].id)
@@ -145,22 +143,22 @@ export async function runAuthors(opts: PipelineOpts = {}): Promise<AuthorsResult
 
   if (!lastId) {
     await store.setLastId("authors", String(latestId))
-    log(`  Initialized lastId to ${latestId}`)
+    console.log(`  Initialized lastId to ${latestId}`)
     return { comments: 0, alerts: 0 }
   }
 
   const lastSeenId = Number(lastId)
   if (latestId <= lastSeenId) {
-    log("  No new comments")
+    console.log("  No new comments")
     return { comments: 0, alerts: 0 }
   }
 
   const tracked = await store.getTrackedAuthors()
   const subs = await store.getSubscribers()
-  log(`👤 Tracked: ${tracked.length ? tracked.join(", ") : "none"}`)
+  console.log(`👤 Tracked: ${tracked.length ? tracked.join(", ") : "none"}`)
 
   const startPage = Math.ceil((latestId - lastSeenId) / COMMENTS_PER_PAGE) + START_PAGE_BUFFER
-  log(`📥 Scraping pages ${startPage}→1 (lastId=${lastId}, latest=${latestId})...`)
+  console.log(`📥 Scraping pages ${startPage}→1 (lastId=${lastId}, latest=${latestId})...`)
 
   let totalComments = 0
   let totalAlerts = 0
@@ -189,11 +187,11 @@ export async function runAuthors(opts: PipelineOpts = {}): Promise<AuthorsResult
     const pageMaxId = String(Math.max(...fresh.map((c) => Number(c.id))))
     await store.setLastId("authors", pageMaxId)
 
-    if (alerts.length > 0) log(`  page ${page}: +${alerts.length} alerts`)
+    if (alerts.length > 0) console.log(`  page ${page}: +${alerts.length} alerts`)
   }
 
-  log(`  ${totalComments} comments, ${totalAlerts} alerts total`)
-  log("✅ Done")
+  console.log(`  ${totalComments} comments, ${totalAlerts} alerts total`)
+  console.log("✅ Done")
   return { comments: totalComments, alerts: totalAlerts }
 }
 
@@ -205,14 +203,14 @@ export interface HotResult {
 }
 
 export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
-  const { log, store, bot } = resolveOpts(opts)
+  const { store, bot } = resolveOpts(opts)
 
-  log("🔑 Auth...")
+  console.log("🔑 Auth...")
   const cookie = await alenkaAuth(store)
 
-  log("🔥 Scraping top comments...")
+  console.log("🔥 Scraping top comments...")
   const comments = await scrapeTopComments(cookie)
-  log(`  ${comments.length} top comments`)
+  console.log(`  ${comments.length} top comments`)
 
   const msgs = comments.map(toMessage)
 
@@ -226,7 +224,7 @@ export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
     if (a.type === "hot") await store.markHotSeen(a.comment.id)
   }
 
-  log(`  ${alerts.length} hot alerts`)
+  console.log(`  ${alerts.length} hot alerts`)
 
   if (alerts.length > 0) {
     const subs = await store.getSubscribers()
@@ -236,6 +234,6 @@ export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
     }
   }
 
-  log("✅ Done")
+  console.log("✅ Done")
   return { total: msgs.length, alerts: alerts.length }
 }

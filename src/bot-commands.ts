@@ -264,7 +264,7 @@ async function handleAnalysis(
 async function handleTrends(ctx: Context, store: Store, sourceName: string, durationMs: number, customPrompt?: string): Promise<boolean> {
   const since = new Date(Date.now() - durationMs)
   return handleAnalysis(ctx, store, "Trends", () =>
-    runTrends(sourceName, { store, since, customPrompt, onLog: console.log }),
+    runTrends(sourceName, { store, since, customPrompt }),
   )
 }
 
@@ -272,13 +272,13 @@ async function handleTopics(ctx: Context, store: Store, sourceName: string, dura
   const since = new Date(Date.now() - durationMs)
   const extraTopics = adhocTopic ? [adhocTopic] : undefined
   return handleAnalysis(ctx, store, "Topics", () =>
-    runTopics(sourceName, { store, since, extraTopics, onLog: console.log }),
+    runTopics(sourceName, { store, since, extraTopics }),
   )
 }
 
 async function handleAuthors(ctx: Context, store: Store) {
   try {
-    const result = await withTyping(ctx, () => runAuthors({ store, onLog: console.log }))
+    const result = await withTyping(ctx, () => runAuthors({ store }))
     await ctx.reply(`✅ ${result.comments} комментариев, ${result.alerts} алертов.`)
   } catch (e) {
     console.error("Authors error:", e)
@@ -288,7 +288,7 @@ async function handleAuthors(ctx: Context, store: Store) {
 
 async function handleHot(ctx: Context, store: Store) {
   try {
-    const result = await withTyping(ctx, () => runHot({ store, onLog: console.log }))
+    const result = await withTyping(ctx, () => runHot({ store }))
     await ctx.reply(`✅ ${result.total} топ-комментариев, ${result.alerts} горячих.`)
   } catch (e) {
     console.error("Hot error:", e)
