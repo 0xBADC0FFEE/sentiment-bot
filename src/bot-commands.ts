@@ -55,7 +55,7 @@ function parseCommandArgs(raw: string | undefined): { durationMs: number; custom
   return { durationMs, customArg }
 }
 
-async function runWithReply<T>(
+async function execWithReply<T>(
   ctx: Context,
   label: string,
   run: () => Promise<T>,
@@ -70,52 +70,36 @@ async function runWithReply<T>(
   }
 }
 
-async function runAnalysis(
-  ctx: Context,
-  store: Store,
-  label: string,
-  run: () => Promise<{ messages: number; sent: boolean; session?: Session }>,
-): Promise<boolean> {
-  try {
-    const chat = chatId(ctx)
-    const result = await withTyping(ctx, run)
-    if (result.session) await store.setSession(chat, result.session)
-    if (!result.sent) await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет данных.`)
-    return !!result.session
-  } catch (e) {
-    console.error(`${label} error:`, e)
-    await ctx.reply(`❌ Ошибка: ${String(e)}`)
-    return false
-  }
-}
-
-function handleAnalysis(
+async function runAndReply(
   ctx: Context, store: Store, sourceName: string,
   durationMs: number, mode: "trends" | "topics", custom?: string,
-): Promise<boolean> {
+): Promise<void> {
+  const chat = chatId(ctx)
   const since = new Date(Date.now() - durationMs)
-  const label = mode === "trends" ? "Trends" : "Topics"
   const run = mode === "trends"
     ? () => runTrends(sourceName, { store, since, customPrompt: custom })
     : () => runTopics(sourceName, { store, since, extraTopics: custom ? [custom] : undefined })
-  return runAnalysis(ctx, store, label, run)
-}
 
-async function analyzeAndClear(
-  ctx: Context, store: Store, chat: string,
-  sourceName: string, durationMs: number, mode: "trends" | "topics", custom?: string,
-): Promise<void> {
-  const ok = await handleAnalysis(ctx, store, sourceName, durationMs, mode, custom)
-  if (ok) await store.clearPending(chat)
+  try {
+    const result = await withTyping(ctx, run)
+    if (result.session) {
+      await store.setSession(chat, result.session)
+      await store.clearPending(chat)
+    }
+    if (!result.sent) await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет данных.`)
+  } catch (e) {
+    console.error(`${mode} error:`, e)
+    await ctx.reply(`❌ Ошибка: ${String(e)}`)
+  }
 }
 
 function handleAuthors(ctx: Context, store: Store) {
-  return runWithReply(ctx, "Authors", () => runAuthors({ store }),
+  return execWithReply(ctx, "Authors", () => runAuthors({ store }),
     (r) => `✅ ${r.comments} комментариев, ${r.alerts} алертов.`)
 }
 
 function handleHot(ctx: Context, store: Store) {
-  return runWithReply(ctx, "Hot", () => runHot({ store }),
+  return execWithReply(ctx, "Hot", () => runHot({ store }),
     (r) => `✅ ${r.total} топ-комментариев, ${r.alerts} горячих.`)
 }
 
@@ -214,11 +198,11 @@ async function handleText(ctx: Context, store: Store, text: string): Promise<voi
   switch (state.kind) {
     case "pending": {
       const sourceName = await resolveSource(store, chat)
-      await analyzeAndClear(ctx, store, chat, sourceName, state.durationMs, "trends", text)
+      await runAndReply(ctx, store, sourceName, state.durationMs, "trends", text)
       return
     }
     case "session": {
-      await runWithReply(ctx, "Follow-up",
+      await execWithReply(ctx, "Follow-up",
         async () => {
           const result = await followUp(state.session, text)
           await store.setSession(chat, result.session)
@@ -233,7 +217,7 @@ async function handleText(ctx: Context, store: Store, text: string): Promise<voi
         await showAnalysisPicker(ctx, store, chat, customDuration)
       } else {
         const sourceName = await resolveSource(store, chat)
-        await analyzeAndClear(ctx, store, chat, sourceName, DEFAULT_DURATION_MS, "trends", text)
+        await runAndReply(ctx, store, sourceName, DEFAULT_DURATION_MS, "trends", text)
       }
       return
     }
@@ -276,7 +260,7 @@ function analysisCommand(store: Store, mode: "trends" | "topics") {
   return adminOnly(async (ctx: Context) => {
     const { durationMs, customArg } = parseCommandArgs(ctx.match?.toString())
     const sourceName = await resolveSource(store, chatId(ctx))
-    await handleAnalysis(ctx, store, sourceName, durationMs, mode, customArg)
+    await runAndReply(ctx, store, sourceName, durationMs, mode, customArg)
   })
 }
 
@@ -334,7 +318,7 @@ export function registerCommands(bot: Bot, store: Store) {
 
     const mode = data.slice(CALLBACK_PREFIX.length) as "trends" | "topics"
     const sourceName = await resolveSource(store, chat)
-    await analyzeAndClear(ctx, store, chat, sourceName, durationMs, mode)
+    await runAndReply(ctx, store, sourceName, durationMs, mode)
   })
 
   bot.on("message:text", async (ctx) => {

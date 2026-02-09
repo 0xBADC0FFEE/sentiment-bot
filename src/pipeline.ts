@@ -22,14 +22,18 @@ export interface PipelineOpts {
   customPrompt?: string
 }
 
-function resolveOpts(opts: PipelineOpts) {
-  return {
-    store: opts.store ?? new Store(),
-    bot: new Bot(opts.botToken ?? telegram.botToken),
-  }
+function defaults(opts: PipelineOpts) {
+  const store = opts.store ?? new Store()
+  const bot = new Bot(opts.botToken ?? telegram.botToken)
+  return { store, bot }
 }
 
-// --- Shared helpers ---
+async function resolveAlenka(opts: PipelineOpts) {
+  const { store, bot } = defaults(opts)
+  console.log("🔑 Auth...")
+  const cookie = await alenkaAuth(store)
+  return { store, bot, cookie }
+}
 
 async function broadcastAlert(bot: Bot, subs: string[], alert: Alert) {
   const images = alert.type === "author" || alert.type === "hot" ? alert.comment.images : undefined
@@ -44,35 +48,33 @@ export interface PipelineResult {
   session?: Session
 }
 
-interface RunAnalysisOpts {
-  alertType: "trends" | "topics"
-  prompt: string
-  messages: Message[]
-  store: Store
-  bot: Bot
-}
-
-async function runAnalysis(opts: RunAnalysisOpts): Promise<PipelineResult> {
-  if (opts.messages.length < MIN_ITEMS) {
+async function analyzeAndBroadcast(
+  alertType: "trends" | "topics",
+  prompt: string,
+  messages: Message[],
+  store: Store,
+  bot: Bot,
+): Promise<PipelineResult> {
+  if (messages.length < MIN_ITEMS) {
     console.log(`  Need ≥${MIN_ITEMS}, skipping`)
-    return { messages: opts.messages.length, sent: false }
+    return { messages: messages.length, sent: false }
   }
 
-  console.log(`🧠 Analyzing ${opts.alertType}...`)
-  const result = await analyze(toItems(opts.messages), { prompt: opts.prompt })
+  console.log(`🧠 Analyzing ${alertType}...`)
+  const result = await analyze(toItems(messages), { prompt })
 
   if (!result) {
-    console.log(`  No meaningful ${opts.alertType}`)
+    console.log(`  No meaningful ${alertType}`)
   } else {
-    const range = dateRange(opts.messages)
-    const alert: Alert = { type: opts.alertType, summary: result.text, dateRange: range, itemCount: result.itemCount }
-    const subs = await opts.store.getSubscribers()
+    const range = dateRange(messages)
+    const alert: Alert = { type: alertType, summary: result.text, dateRange: range, itemCount: result.itemCount }
+    const subs = await store.getSubscribers()
     console.log(`📢 Sending to ${subs.length} subscribers`)
-    await broadcastAlert(opts.bot, subs, alert)
+    await broadcastAlert(bot, subs, alert)
   }
 
   console.log("✅ Done")
-  return { messages: opts.messages.length, sent: !!result, session: result?.session }
+  return { messages: messages.length, sent: !!result, session: result?.session }
 }
 
 async function fetchAndAnalyze(
@@ -81,7 +83,7 @@ async function fetchAndAnalyze(
   prompt: string,
   opts: PipelineOpts,
 ): Promise<PipelineResult> {
-  const { store, bot } = resolveOpts(opts)
+  const { store, bot } = defaults(opts)
   const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
   const source = getSource(sourceName)
 
@@ -89,7 +91,7 @@ async function fetchAndAnalyze(
   const messages = await source.fetchMessages(since)
   console.log(`  ${messages.length} messages`)
 
-  return runAnalysis({ alertType, prompt, messages, store, bot })
+  return analyzeAndBroadcast(alertType, prompt, messages, store, bot)
 }
 
 export function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<PipelineResult> {
@@ -98,7 +100,7 @@ export function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<
 }
 
 export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Promise<PipelineResult> {
-  const store = opts.store ?? new Store()
+  const { store } = defaults(opts)
   const topics = opts.extraTopics?.length ? opts.extraTopics : await store.getTrackedTopics()
   if (topics.length === 0) {
     console.log("❌ No topics tracked. Use /topic <name>.")
@@ -116,11 +118,7 @@ export interface AuthorsResult {
 }
 
 export async function runAuthors(opts: PipelineOpts = {}): Promise<AuthorsResult> {
-  const { store, bot } = resolveOpts(opts)
-
-  console.log("🔑 Auth...")
-  const cookie = await alenkaAuth(store)
-
+  const { store, bot, cookie } = await resolveAlenka(opts)
   const lastId = await store.getLastId("authors")
 
   if (!lastId) {
@@ -134,8 +132,7 @@ export async function runAuthors(opts: PipelineOpts = {}): Promise<AuthorsResult
     return { comments: 0, alerts: 0 }
   }
 
-  const tracked = await store.getTrackedAuthors()
-  const subs = await store.getSubscribers()
+  const [tracked, subs] = await Promise.all([store.getTrackedAuthors(), store.getSubscribers()])
   console.log(`👤 Tracked: ${tracked.length ? tracked.join(", ") : "none"}`)
   console.log(`📥 Scraping new comments (lastId=${lastId})...`)
 
@@ -174,10 +171,7 @@ export interface HotResult {
 }
 
 export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
-  const { store, bot } = resolveOpts(opts)
-
-  console.log("🔑 Auth...")
-  const cookie = await alenkaAuth(store)
+  const { store, bot, cookie } = await resolveAlenka(opts)
 
   console.log("🔥 Scraping top comments...")
   const comments = await scrapeTopComments(cookie)
@@ -185,15 +179,11 @@ export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
 
   const msgs = comments.map(toMessage)
 
-  const seenIds = new Set<string>()
-  for (const m of msgs) {
-    if (await store.isHotSeen(m.id)) seenIds.add(m.id)
-  }
+  const seenFlags = await Promise.all(msgs.map((m) => store.isHotSeen(m.id)))
+  const seenIds = new Set(msgs.filter((_, i) => seenFlags[i]).map((m) => m.id))
 
   const alerts = detectHotAlerts(msgs, seenIds)
-  for (const a of alerts) {
-    await store.markHotSeen(a.comment.id)
-  }
+  await Promise.all(alerts.map((a) => store.markHotSeen(a.comment.id)))
 
   console.log(`  ${alerts.length} hot alerts`)
 
