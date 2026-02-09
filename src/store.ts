@@ -7,6 +7,11 @@ export interface Session {
   messages: ChatMessage[]
 }
 
+const ONE_DAY = 86_400
+const THREE_DAYS = 3 * ONE_DAY
+const FIVE_MINUTES = 300
+const ONE_HOUR = 3_600
+
 export class Store {
   private redis: Redis
 
@@ -56,7 +61,7 @@ export class Store {
   }
 
   async setAuthCookie(cookie: string): Promise<void> {
-    await this.redis.set("source:alenka:cookie", cookie, { ex: 86400 })
+    await this.redis.set("source:alenka:cookie", cookie, { ex: ONE_DAY })
   }
 
   // Source-namespaced: alenka lastId
@@ -108,12 +113,12 @@ export class Store {
   }
 
   async markHotSeen(commentId: string): Promise<void> {
-    await this.redis.set(`hot:seen:${commentId}`, 1, { ex: 259200 })
+    await this.redis.set(`hot:seen:${commentId}`, 1, { ex: THREE_DAYS })
   }
 
   // Pending analysis (5-minute TTL)
   async setPending(chatId: string, durationMs: number): Promise<void> {
-    await this.redis.set(`user:${chatId}:pending`, durationMs, { ex: 300 })
+    await this.redis.set(`user:${chatId}:pending`, durationMs, { ex: FIVE_MINUTES })
   }
 
   async getPending(chatId: string): Promise<number | null> {
@@ -130,7 +135,7 @@ export class Store {
   }
 
   async setSession(chatId: string, session: Session): Promise<void> {
-    await this.redis.set(`chat:session:${chatId}`, session, { ex: 3600 })
+    await this.redis.set(`chat:session:${chatId}`, session, { ex: ONE_HOUR })
   }
 
   async clearSession(chatId: string): Promise<void> {

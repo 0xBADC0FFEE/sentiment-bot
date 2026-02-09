@@ -242,47 +242,38 @@ export function registerCommands(bot: Bot, store: Store) {
   })
 }
 
-async function handleTrends(ctx: Context, store: Store, sourceName: string, durationMs: number, customPrompt?: string): Promise<boolean> {
+async function handleAnalysis(
+  ctx: Context,
+  store: Store,
+  label: string,
+  run: () => Promise<{ messages: number; sent: boolean; session?: import("./store.js").Session }>,
+): Promise<boolean> {
   try {
     const chatId = ctx.chat!.id.toString()
-    const since = new Date(Date.now() - durationMs)
-    const result = await withTyping(ctx, () =>
-      runTrends(sourceName, { store, since, customPrompt, onLog: console.log }),
-    )
-    if (result.session) {
-      await store.setSession(chatId, result.session)
-    }
-    if (!result.sent) {
-      await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет трендов.`)
-    }
+    const result = await withTyping(ctx, run)
+    if (result.session) await store.setSession(chatId, result.session)
+    if (!result.sent) await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет данных.`)
     return !!result.session
   } catch (e) {
-    console.error("Trends error:", e)
+    console.error(`${label} error:`, e)
     await ctx.reply(`❌ Ошибка: ${String(e)}`)
     return false
   }
 }
 
+async function handleTrends(ctx: Context, store: Store, sourceName: string, durationMs: number, customPrompt?: string): Promise<boolean> {
+  const since = new Date(Date.now() - durationMs)
+  return handleAnalysis(ctx, store, "Trends", () =>
+    runTrends(sourceName, { store, since, customPrompt, onLog: console.log }),
+  )
+}
+
 async function handleTopics(ctx: Context, store: Store, sourceName: string, durationMs: number, adhocTopic?: string): Promise<boolean> {
-  try {
-    const chatId = ctx.chat!.id.toString()
-    const since = new Date(Date.now() - durationMs)
-    const extraTopics = adhocTopic ? [adhocTopic] : undefined
-    const result = await withTyping(ctx, () =>
-      runTopics(sourceName, { store, since, extraTopics, onLog: console.log }),
-    )
-    if (result.session) {
-      await store.setSession(chatId, result.session)
-    }
-    if (!result.sent) {
-      await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет данных.`)
-    }
-    return !!result.session
-  } catch (e) {
-    console.error("Topics error:", e)
-    await ctx.reply(`❌ Ошибка: ${String(e)}`)
-    return false
-  }
+  const since = new Date(Date.now() - durationMs)
+  const extraTopics = adhocTopic ? [adhocTopic] : undefined
+  return handleAnalysis(ctx, store, "Topics", () =>
+    runTopics(sourceName, { store, since, extraTopics, onLog: console.log }),
+  )
 }
 
 async function handleAuthors(ctx: Context, store: Store) {

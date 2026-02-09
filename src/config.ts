@@ -39,6 +39,7 @@ export const ONE_DAY_MS = 86_400_000
 
 export const MAX_ITEMS = 2000
 export const MIN_ITEMS = 10
+export const MAX_OUTPUT_TOKENS = 4096
 
 const CONTEXT_WINDOWS: Record<string, number> = {
   "anthropic://claude-haiku-4-5-20251001": 200_000,
@@ -56,5 +57,6 @@ export function estimateTokens(text: string): number {
 export function getInputBudget(): number {
   const ctx = CONTEXT_WINDOWS[llm.uri]
   if (!ctx) console.warn(`Unknown context window for "${llm.uri}", using ${DEFAULT_CONTEXT}`)
-  return (ctx ?? DEFAULT_CONTEXT) - 4096 - 500
+  const PROMPT_OVERHEAD = 500
+  return (ctx ?? DEFAULT_CONTEXT) - MAX_OUTPUT_TOKENS - PROMPT_OVERHEAD
 }

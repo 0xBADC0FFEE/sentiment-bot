@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { createProvider } from "./llm/index.js"
-import { MAX_ITEMS, MIN_ITEMS, estimateTokens, getInputBudget } from "./config.js"
+import { MAX_ITEMS, MIN_ITEMS, MAX_OUTPUT_TOKENS, estimateTokens, getInputBudget } from "./config.js"
 import type { Message } from "./types.js"
 import type { Session } from "./store.js"
 
@@ -121,7 +121,7 @@ export async function analyze(
   const userMessage = opts.prompt.replace("{data}", formatted.text)
 
   const llm = createProvider()
-  const text = await llm.complete(system, userMessage, 4096)
+  const text = await llm.complete(system, userMessage, MAX_OUTPUT_TOKENS)
 
   if (text.includes("НЕТ ТРЕНДОВ") || text.includes("НЕТ ДАННЫХ")) return null
 
@@ -147,7 +147,7 @@ export async function followUp(
   const messages = [...session.messages, { role: "user" as const, content: userMessage }]
 
   const llm = createProvider()
-  const text = await llm.chat(session.system, messages, 4096)
+  const text = await llm.chat(session.system, messages, MAX_OUTPUT_TOKENS)
 
   messages.push({ role: "assistant", content: text })
 

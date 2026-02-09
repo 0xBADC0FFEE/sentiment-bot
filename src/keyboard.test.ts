@@ -14,14 +14,10 @@ describe("resolveButton", () => {
     expect(action!.type).toBe("source")
   })
 
-  it("resolves trends duration buttons", () => {
-    const action = resolveButton("📊 24ч")
-    expect(action).toEqual({ type: "trends", durationMs: 86_400_000 })
-  })
-
-  it("resolves topics duration buttons", () => {
-    const action = resolveButton("🏷️ 3д")
-    expect(action).toEqual({ type: "topics", durationMs: 3 * 86_400_000 })
+  it("resolves duration buttons", () => {
+    expect(resolveButton("24h")).toEqual({ type: "analysis", durationMs: 86_400_000 })
+    expect(resolveButton("3d")).toEqual({ type: "analysis", durationMs: 3 * 86_400_000 })
+    expect(resolveButton("7d")).toEqual({ type: "analysis", durationMs: 7 * 86_400_000 })
   })
 
   it("resolves authors button", () => {

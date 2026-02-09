@@ -22,6 +22,14 @@ export interface PipelineOpts {
   onLog?: (msg: string) => void
 }
 
+function resolveOpts(opts: PipelineOpts) {
+  return {
+    log: opts.onLog ?? (() => {}),
+    store: opts.store ?? new Store(),
+    bot: createBot(opts.botToken ?? telegram.botToken),
+  }
+}
+
 // --- Generic: trends for any source ---
 
 export interface TrendsResult {
@@ -31,9 +39,7 @@ export interface TrendsResult {
 }
 
 export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<TrendsResult> {
-  const log = opts.onLog ?? (() => {})
-  const store = opts.store ?? new Store()
-  const bot = createBot(opts.botToken ?? telegram.botToken)
+  const { log, store, bot } = resolveOpts(opts)
   const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
   const source = getSource(sourceName)
 
@@ -74,9 +80,7 @@ export interface TopicsResult {
 }
 
 export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Promise<TopicsResult> {
-  const log = opts.onLog ?? (() => {})
-  const store = opts.store ?? new Store()
-  const bot = createBot(opts.botToken ?? telegram.botToken)
+  const { log, store, bot } = resolveOpts(opts)
   const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
   const source = getSource(sourceName)
 
@@ -124,9 +128,7 @@ const COMMENTS_PER_PAGE = 10
 const START_PAGE_BUFFER = 2
 
 export async function runAuthors(opts: PipelineOpts = {}): Promise<AuthorsResult> {
-  const log = opts.onLog ?? (() => {})
-  const store = opts.store ?? new Store()
-  const bot = createBot(opts.botToken ?? telegram.botToken)
+  const { log, store, bot } = resolveOpts(opts)
 
   log("🔑 Auth...")
   const cookie = await alenkaAuth(store)
@@ -203,9 +205,7 @@ export interface HotResult {
 }
 
 export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
-  const log = opts.onLog ?? (() => {})
-  const store = opts.store ?? new Store()
-  const bot = createBot(opts.botToken ?? telegram.botToken)
+  const { log, store, bot } = resolveOpts(opts)
 
   log("🔑 Auth...")
   const cookie = await alenkaAuth(store)

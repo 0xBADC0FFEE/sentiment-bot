@@ -48,16 +48,18 @@ export function formatHotAlert(c: Message): string {
   return formatCommentAlert("🔥", c)
 }
 
-export function formatTrendsSummary(summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
+function formatSummaryAlert(emoji: string, title: string, summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
   const range = dateRange ? ` · ${shortDate(dateRange.from)}–${shortDate(dateRange.to)}` : ""
   const count = itemCount ? ` · ${itemCount} сообщ.` : ""
-  return `📊 <b>Обзор трендов</b>${range}${count}\n\n${esc(summary)}`
+  return `${emoji} <b>${title}</b>${range}${count}\n\n${esc(summary)}`
+}
+
+export function formatTrendsSummary(summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
+  return formatSummaryAlert("📊", "Обзор трендов", summary, dateRange, itemCount)
 }
 
 export function formatTopicsSummary(summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
-  const range = dateRange ? ` · ${shortDate(dateRange.from)}–${shortDate(dateRange.to)}` : ""
-  const count = itemCount ? ` · ${itemCount} сообщ.` : ""
-  return `🏷️ <b>Обзор топиков</b>${range}${count}\n\n${esc(summary)}`
+  return formatSummaryAlert("🏷️", "Обзор топиков", summary, dateRange, itemCount)
 }
 
 export function formatAlert(alert: Alert): string {
