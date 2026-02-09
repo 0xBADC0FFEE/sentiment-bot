@@ -4,7 +4,8 @@ import { hostname } from "node:os"
 import type { Store, Session } from "./store.js"
 import { startKeyboard, sourceKeyboard, promptKeyboard, resolveButton, DEFAULT_DURATION_MS, type ButtonAction } from "./keyboard.js"
 import { getSources } from "./sources/registry.js"
-import { runTrends, runTopics, runAuthors, runHot } from "./pipeline.js"
+import { runTrends, runTopics } from "./pipeline.js"
+import { runAuthors, runHot } from "./sources/alenka/pipeline.js"
 import { followUp } from "./analyzer.js"
 import { llm, telegram } from "./config.js"
 
@@ -76,9 +77,10 @@ async function runAndReply(
 ): Promise<void> {
   const chat = chatId(ctx)
   const since = new Date(Date.now() - durationMs)
+  const api = ctx.api
   const run = mode === "trends"
-    ? () => runTrends(sourceName, { store, since, customPrompt: custom })
-    : () => runTopics(sourceName, { store, since, extraTopics: custom ? [custom] : undefined })
+    ? () => runTrends(sourceName, { store, api, since, customPrompt: custom })
+    : () => runTopics(sourceName, { store, api, since, extraTopics: custom ? [custom] : undefined })
 
   try {
     const result = await withTyping(ctx, run)
@@ -94,12 +96,12 @@ async function runAndReply(
 }
 
 function handleAuthors(ctx: Context, store: Store) {
-  return execWithReply(ctx, "Authors", () => runAuthors({ store }),
+  return execWithReply(ctx, "Authors", () => runAuthors({ store, api: ctx.api }),
     (r) => `✅ ${r.comments} комментариев, ${r.alerts} алертов.`)
 }
 
 function handleHot(ctx: Context, store: Store) {
-  return execWithReply(ctx, "Hot", () => runHot({ store }),
+  return execWithReply(ctx, "Hot", () => runHot({ store, api: ctx.api }),
     (r) => `✅ ${r.total} топ-комментариев, ${r.alerts} горячих.`)
 }
 

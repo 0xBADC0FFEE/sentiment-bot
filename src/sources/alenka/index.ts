@@ -1,7 +1,7 @@
 import type { Source } from "../types.js"
 import type { Message } from "../../types.js"
 import { alenka, MAX_ITEMS } from "../../config.js"
-import { Store } from "../../store.js"
+import type { Store } from "../../store.js"
 import type { Comment } from "./scraper.js"
 import { login, scrapeNewComments } from "./scraper.js"
 
@@ -36,14 +36,13 @@ export function toMessage(c: Comment): Message {
   }
 }
 
-export function createAlenkaSource(): Source {
+export function createAlenkaSource(store: Store): Source {
   return {
     name: "alenka",
     label: "📡 Alenka",
     capabilities: ["trends", "topics", "authors", "hot"],
 
     async fetchMessages(since: Date): Promise<Message[]> {
-      const store = new Store()
       const cookie = await auth(store)
       const comments = await scrapeNewComments(cookie, {
         maxComments: MAX_ITEMS,

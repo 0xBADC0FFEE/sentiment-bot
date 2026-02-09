@@ -1,17 +1,16 @@
 import type { Source } from "../types.js"
 import type { Message } from "../../types.js"
-import { Store } from "../../store.js"
+import type { Store } from "../../store.js"
 import { createClient } from "./client.js"
 import { getFolderChats, readMessages } from "./reader.js"
 
-export function createTelegramSource(): Source {
+export function createTelegramSource(store: Store): Source {
   return {
     name: "telegram",
     label: "📡 TG",
     capabilities: ["trends", "topics"],
 
     async fetchMessages(since: Date): Promise<Message[]> {
-      const store = new Store()
       const folderName = await store.getFolder()
       if (!folderName) throw new Error("No folder configured. Use /folder <name>.")
 

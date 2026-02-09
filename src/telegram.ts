@@ -1,4 +1,4 @@
-import { Bot, InputMediaBuilder } from "grammy"
+import { Api, InputMediaBuilder } from "grammy"
 import type { Alert, Message } from "./types.js"
 
 function esc(s: string): string {
@@ -68,7 +68,7 @@ export function formatAlert(alert: Alert): string {
 }
 
 export async function broadcast(
-  bot: Bot,
+  api: Api,
   chatIds: string[],
   message: string,
   images?: string[],
@@ -76,7 +76,7 @@ export async function broadcast(
   for (const chatId of chatIds) {
     try {
       if (images && images.length === 1) {
-        await bot.api.sendPhoto(chatId, images[0], {
+        await api.sendPhoto(chatId, images[0], {
           caption: message,
           parse_mode: "HTML",
         })
@@ -84,17 +84,22 @@ export async function broadcast(
         const media = images.map((url, i) =>
           InputMediaBuilder.photo(url, i === 0 ? { caption: message, parse_mode: "HTML" } : {}),
         )
-        await bot.api.sendMediaGroup(chatId, media)
+        await api.sendMediaGroup(chatId, media)
       } else {
         const parts = splitMessage(message)
         for (const part of parts) {
-          await bot.api.sendMessage(chatId, part, { parse_mode: "HTML" })
+          await api.sendMessage(chatId, part, { parse_mode: "HTML" })
         }
       }
     } catch (e) {
       console.error(`Failed to send to ${chatId}:`, e)
     }
   }
+}
+
+export async function broadcastAlert(api: Api, subs: string[], alert: Alert): Promise<void> {
+  const images = alert.type === "author" || alert.type === "hot" ? alert.comment.images : undefined
+  await broadcast(api, subs, formatAlert(alert), images)
 }
 
 const TG_LIMIT = 4096

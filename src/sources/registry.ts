@@ -1,11 +1,15 @@
 import type { Source } from "./types.js"
+import { Store } from "../store.js"
 import { createTelegramSource } from "./telegram/index.js"
 import { createAlenkaSource } from "./alenka/index.js"
 
 let cached: Source[] | undefined
 
 export function getSources(): Source[] {
-  cached ??= [createAlenkaSource(), createTelegramSource()]
+  if (!cached) {
+    const store = new Store()
+    cached = [createAlenkaSource(store), createTelegramSource(store)]
+  }
   return cached
 }
 

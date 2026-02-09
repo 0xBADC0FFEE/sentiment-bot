@@ -1,12 +1,15 @@
 import { readFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
 import { createProvider } from "./llm/index.js"
 import { MAX_ITEMS, MIN_ITEMS, MAX_OUTPUT_TOKENS, estimateTokens, getInputBudget } from "./config.js"
 import type { Message } from "./types.js"
 import type { Session } from "./store.js"
 
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
 function loadPrompt(name: string): string {
-  return readFileSync(join(process.cwd(), "prompts", name), "utf-8").trim()
+  return readFileSync(join(__dirname, "..", "prompts", name), "utf-8").trim()
 }
 
 export interface Item {
