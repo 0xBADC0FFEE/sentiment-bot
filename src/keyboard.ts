@@ -7,16 +7,12 @@ export const BTN = {
   back: "◀️ Назад",
 } as const
 
-const DURATION_LABELS: Record<string, string> = {
-  "24h": "24ч",
-  "3d": "3д",
-  "7d": "7д",
-}
+export const DEFAULT_DURATION_MS = 86_400_000
 
 export const DURATIONS: Record<string, number> = {
-  "24h": 86_400_000,
-  "3d": 3 * 86_400_000,
-  "7d": 7 * 86_400_000,
+  "24h": DEFAULT_DURATION_MS,
+  "3d": 3 * DEFAULT_DURATION_MS,
+  "7d": 7 * DEFAULT_DURATION_MS,
 }
 
 const CAPABILITY_BUTTONS: Record<string, string> = {
@@ -40,8 +36,8 @@ export function sourceKeyboard(source: Source): Keyboard {
   const hasAnalysis = caps.includes("trends") || caps.includes("topics")
 
   if (hasAnalysis) {
-    for (const [, label] of Object.entries(DURATION_LABELS)) {
-      kb.text(label)
+    for (const key of Object.keys(DURATIONS)) {
+      kb.text(key)
     }
     kb.row()
   }
@@ -83,9 +79,7 @@ export function resolveButton(text: string): ButtonAction {
   if (source) return { type: "source", source }
 
   // Duration?
-  for (const [key, label] of Object.entries(DURATION_LABELS)) {
-    if (text === label) return { type: "analysis", durationMs: DURATIONS[key] }
-  }
+  if (text in DURATIONS) return { type: "analysis", durationMs: DURATIONS[text] }
 
   // Capability buttons?
   for (const [cap, label] of Object.entries(CAPABILITY_BUTTONS)) {

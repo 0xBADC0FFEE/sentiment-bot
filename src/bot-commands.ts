@@ -2,7 +2,7 @@ import type { Bot, Context } from "grammy"
 import ms from "ms"
 import { hostname } from "node:os"
 import type { Store } from "./store.js"
-import { startKeyboard, sourceKeyboard, promptKeyboard, resolveButton } from "./keyboard.js"
+import { startKeyboard, sourceKeyboard, promptKeyboard, resolveButton, DEFAULT_DURATION_MS } from "./keyboard.js"
 import { getSource, getSources } from "./sources/registry.js"
 import { runTrends, runTopics, runAuthors, runHot } from "./pipeline.js"
 import { followUp } from "./analyzer.js"
@@ -102,7 +102,7 @@ export function registerCommands(bot: Bot, store: Store) {
     if (!isAdmin(ctx.from?.id)) return
     const arg = ctx.match?.trim()
     const parts = arg ? arg.split(/\s+/) : []
-    const durationMs = parts.length ? (parseDuration(parts[0]) ?? 86_400_000) : 86_400_000
+    const durationMs = parts.length ? (parseDuration(parts[0]) ?? DEFAULT_DURATION_MS) : DEFAULT_DURATION_MS
     const customPrompt = parts.slice(1).join(" ").trim() || undefined
     const sourceName = (await store.getUserSource(ctx.chat.id.toString())) || getSources()[0].name
     await handleTrends(ctx, store, sourceName, durationMs, customPrompt)
@@ -113,7 +113,7 @@ export function registerCommands(bot: Bot, store: Store) {
     if (!isAdmin(ctx.from?.id)) return
     const arg = ctx.match?.trim()
     const parts = arg ? arg.split(/\s+/) : []
-    const durationMs = parts.length ? (parseDuration(parts[0]) ?? 86_400_000) : 86_400_000
+    const durationMs = parts.length ? (parseDuration(parts[0]) ?? DEFAULT_DURATION_MS) : DEFAULT_DURATION_MS
     const adhocTopic = parts.slice(1).join(" ").trim() || undefined
     const sourceName = (await store.getUserSource(ctx.chat.id.toString())) || getSources()[0].name
     await handleTopics(ctx, store, sourceName, durationMs, adhocTopic)
@@ -220,7 +220,10 @@ export function registerCommands(bot: Bot, store: Store) {
             reply_markup: promptKeyboard(topics.length > 0),
           })
         } else {
-          await ctx.reply("Введите период (например 6h, 2d) или выберите кнопкой.")
+          // Not a duration → treat as custom prompt with default 24h
+          const sourceName = source || getSources()[0].name
+          const hasSession = await handleTrends(ctx, store, sourceName, DEFAULT_DURATION_MS, text)
+          if (hasSession) await store.clearPending(chatId)
         }
         return
       }
