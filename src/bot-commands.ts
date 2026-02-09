@@ -209,7 +209,22 @@ export function registerCommands(bot: Bot, store: Store) {
     // Existing session → follow-up
     const session = await store.getSession(chatId)
     if (!session) {
-      await ctx.reply("Нет активного контекста. Выберите период анализа.")
+      // Source selected but no analysis yet → expect duration
+      const source = await store.getUserSource(chatId)
+      if (source) {
+        const customDuration = parseDuration(text)
+        if (customDuration) {
+          await store.setPending(chatId, customDuration)
+          const topics = await store.getTrackedTopics()
+          await ctx.reply("Выберите анализ или введите свой промпт:", {
+            reply_markup: promptKeyboard(topics.length > 0),
+          })
+        } else {
+          await ctx.reply("Введите период (например 6h, 2d) или выберите кнопкой.")
+        }
+        return
+      }
+      await ctx.reply("Нет активного контекста. Выберите источник.")
       return
     }
 
