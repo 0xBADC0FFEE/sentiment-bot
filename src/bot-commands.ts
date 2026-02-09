@@ -1,20 +1,37 @@
 import type { Bot, Context } from "grammy"
 import ms from "ms"
 import { hostname } from "node:os"
-import type { Store } from "./store.js"
-import { startKeyboard, sourceKeyboard, promptKeyboard, resolveButton, DEFAULT_DURATION_MS } from "./keyboard.js"
-import { getSource, getSources } from "./sources/registry.js"
+import type { Store, Session } from "./store.js"
+import { startKeyboard, sourceKeyboard, promptKeyboard, resolveButton, DEFAULT_DURATION_MS, type ButtonAction } from "./keyboard.js"
+import { getSources } from "./sources/registry.js"
 import { runTrends, runTopics, runAuthors, runHot } from "./pipeline.js"
 import { followUp } from "./analyzer.js"
 import { llm, telegram } from "./config.js"
+
+const CALLBACK_PREFIX = "prompt:"
+const TYPING_INTERVAL_MS = 4000
+const ADMIN_DENIED = "⛔ Только для админа."
+
+function chatId(ctx: Context): string {
+  return ctx.chat!.id.toString()
+}
 
 function isAdmin(userId: number | undefined): boolean {
   return userId?.toString() === telegram.adminId
 }
 
+const adminOnly = (fn: (ctx: Context) => Promise<unknown>, reply?: string) =>
+  async (ctx: Context) => {
+    if (!isAdmin(ctx.from?.id)) {
+      if (reply) await ctx.reply(reply)
+      return
+    }
+    return fn(ctx)
+  }
+
 async function withTyping<T>(ctx: Context, fn: () => Promise<T>): Promise<T> {
   await ctx.replyWithChatAction("typing")
-  const interval = setInterval(() => ctx.replyWithChatAction("typing").catch(() => {}), 4000)
+  const interval = setInterval(() => ctx.replyWithChatAction("typing").catch(() => {}), TYPING_INTERVAL_MS)
   try {
     return await fn()
   } finally {
@@ -22,236 +39,47 @@ async function withTyping<T>(ctx: Context, fn: () => Promise<T>): Promise<T> {
   }
 }
 
+async function resolveSource(store: Store, chat: string): Promise<string> {
+  return (await store.getUserSource(chat)) || getSources()[0].name
+}
+
 function parseDuration(input: string): number | undefined {
   const val = ms(input as ms.StringValue)
   return typeof val === "number" && val > 0 ? val : undefined
 }
 
-export function registerCommands(bot: Bot, store: Store) {
-  // Middleware: clear session on any /command
-  bot.use(async (ctx, next) => {
-    const text = ctx.message?.text
-    if (text?.startsWith("/")) {
-      await store.clearSession(ctx.chat!.id.toString())
-    }
-    await next()
-  })
-
-  // /start — subscribe + show source keyboard
-  bot.command("start", async (ctx) => {
-    await store.addSubscriber(ctx.chat.id.toString())
-    await ctx.reply("✅ Подписка оформлена.", { reply_markup: startKeyboard() })
-  })
-
-  // /folder <name> — set telegram folder (admin)
-  bot.command("folder", async (ctx) => {
-    if (!isAdmin(ctx.from?.id)) return ctx.reply("⛔ Только для админа.")
-    const name = ctx.match?.trim()
-    if (!name) {
-      const current = await store.getFolder()
-      return ctx.reply(current ? `📂 Текущая папка: ${current}` : "Папка не задана. /folder <имя>")
-    }
-    await store.setFolder(name)
-    await ctx.reply(`✅ Папка: ${name}`)
-  })
-
-  // /topic [name] — toggle tracked topic or list
-  bot.command("topic", async (ctx) => {
-    if (!isAdmin(ctx.from?.id)) return ctx.reply("⛔ Только для админа.")
-    const name = ctx.match?.trim()
-    if (!name) {
-      const topics = await store.getTrackedTopics()
-      if (!topics.length) return ctx.reply("Нет топиков. /topic <название>")
-      return ctx.reply(`🏷️ Топики:\n${topics.map((t) => `• <code>${t}</code>`).join("\n")}`, { parse_mode: "HTML" })
-    }
-    if (await store.isTrackedTopic(name)) {
-      await store.untrackTopic(name)
-      await ctx.reply(`🗑️ Топик удалён: ${name}`)
-    } else {
-      await store.trackTopic(name)
-      await ctx.reply(`✅ Топик добавлен: ${name}`)
-    }
-  })
-
-  // /follow [name] — toggle tracked author or list
-  bot.command("follow", async (ctx) => {
-    if (!isAdmin(ctx.from?.id)) return ctx.reply("⛔ Только для админа.")
-    const name = ctx.match?.trim()
-    if (!name) {
-      const authors = await store.getTrackedAuthors()
-      if (!authors.length) return ctx.reply("Нет авторов. /follow <имя>")
-      return ctx.reply(`📝 Авторы:\n${authors.map((a) => `• <code>${a}</code>`).join("\n")}`, { parse_mode: "HTML" })
-    }
-    if (await store.isTrackedAuthor(name)) {
-      await store.untrackAuthor(name)
-      await ctx.reply(`🗑️ Больше не отслеживаю: ${name}`)
-    } else {
-      await store.trackAuthor(name)
-      await ctx.reply(`✅ Отслеживаю: ${name}`)
-    }
-  })
-
-  // /status
-  bot.command("status", async (ctx) => {
-    if (!isAdmin(ctx.from?.id)) return
-    await handleStatus(ctx, store)
-  })
-
-  // /trends [duration] [custom prompt] — manual trigger
-  bot.command("trends", async (ctx) => {
-    if (!isAdmin(ctx.from?.id)) return
-    const arg = ctx.match?.trim()
-    const parts = arg ? arg.split(/\s+/) : []
-    const durationMs = parts.length ? (parseDuration(parts[0]) ?? DEFAULT_DURATION_MS) : DEFAULT_DURATION_MS
-    const customPrompt = parts.slice(1).join(" ").trim() || undefined
-    const sourceName = (await store.getUserSource(ctx.chat.id.toString())) || getSources()[0].name
-    await handleTrends(ctx, store, sourceName, durationMs, customPrompt)
-  })
-
-  // /topics [duration] [adhoc topic] — manual trigger
-  bot.command("topics", async (ctx) => {
-    if (!isAdmin(ctx.from?.id)) return
-    const arg = ctx.match?.trim()
-    const parts = arg ? arg.split(/\s+/) : []
-    const durationMs = parts.length ? (parseDuration(parts[0]) ?? DEFAULT_DURATION_MS) : DEFAULT_DURATION_MS
-    const adhocTopic = parts.slice(1).join(" ").trim() || undefined
-    const sourceName = (await store.getUserSource(ctx.chat.id.toString())) || getSources()[0].name
-    await handleTopics(ctx, store, sourceName, durationMs, adhocTopic)
-  })
-
-  // Inline prompt buttons
-  bot.on("callback_query:data", async (ctx) => {
-    if (!isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery()
-    const data = ctx.callbackQuery.data
-    if (!data.startsWith("prompt:")) return ctx.answerCallbackQuery()
-
-    const chatId = ctx.chat!.id.toString()
-    const durationMs = await store.getPending(chatId)
-    if (!durationMs) {
-      await ctx.answerCallbackQuery({ text: "Сессия истекла. Выберите период заново." })
-      return
-    }
-
-    await ctx.answerCallbackQuery()
-
-    const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
-    let hasSession = false
-    if (data === "prompt:trends") {
-      hasSession = await handleTrends(ctx, store, sourceName, durationMs)
-    } else if (data === "prompt:topics") {
-      hasSession = await handleTopics(ctx, store, sourceName, durationMs)
-    }
-
-    if (hasSession) {
-      await store.clearPending(chatId)
-    }
-  })
-
-  // Text messages: keyboard buttons or follow-up
-  bot.on("message:text", async (ctx) => {
-    const text = ctx.message.text
-    const action = resolveButton(text)
-
-    // Keyboard button → clear session + handle
-    if (action) {
-      if (!isAdmin(ctx.from?.id)) return
-      const chatId = ctx.chat.id.toString()
-      await store.clearSession(chatId)
-
-      switch (action.type) {
-        case "source": {
-          await store.setUserSource(chatId, action.source.name)
-          await ctx.reply(`${action.source.label} выбран.`, { reply_markup: sourceKeyboard(action.source) })
-          break
-        }
-        case "analysis": {
-          await store.setPending(chatId, action.durationMs)
-          const topics = await store.getTrackedTopics()
-          await ctx.reply("Выберите анализ или введите свой промпт:", {
-            reply_markup: promptKeyboard(topics.length > 0),
-          })
-          break
-        }
-        case "authors": {
-          await handleAuthors(ctx, store)
-          break
-        }
-        case "hot": {
-          await handleHot(ctx, store)
-          break
-        }
-        case "status": {
-          await handleStatus(ctx, store)
-          break
-        }
-        case "back": {
-          await store.setUserSource(chatId, "")
-          await ctx.reply("Выберите источник:", { reply_markup: startKeyboard() })
-          break
-        }
-      }
-      return
-    }
-
-    // Free text → custom prompt or follow-up
-    if (!isAdmin(ctx.from?.id)) return
-    const chatId = ctx.chat.id.toString()
-
-    // Pending analysis → treat text as custom prompt
-    const durationMs = await store.getPending(chatId)
-    if (durationMs) {
-      const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
-      const hasSession = await handleTrends(ctx, store, sourceName, durationMs, text)
-      if (hasSession) await store.clearPending(chatId)
-      return
-    }
-
-    // Existing session → follow-up
-    const session = await store.getSession(chatId)
-    if (!session) {
-      // Source selected but no analysis yet → expect duration
-      const source = await store.getUserSource(chatId)
-      if (source) {
-        const customDuration = parseDuration(text)
-        if (customDuration) {
-          await store.setPending(chatId, customDuration)
-          const topics = await store.getTrackedTopics()
-          await ctx.reply("Выберите анализ или введите свой промпт:", {
-            reply_markup: promptKeyboard(topics.length > 0),
-          })
-        } else {
-          // Not a duration → treat as custom prompt with default 24h
-          const sourceName = source || getSources()[0].name
-          const hasSession = await handleTrends(ctx, store, sourceName, DEFAULT_DURATION_MS, text)
-          if (hasSession) await store.clearPending(chatId)
-        }
-        return
-      }
-      await ctx.reply("Нет активного контекста. Выберите источник.")
-      return
-    }
-
-    try {
-      const result = await withTyping(ctx, () => followUp(session, text))
-      await store.setSession(chatId, result.session)
-      await ctx.reply(result.text)
-    } catch (e) {
-      console.error("Follow-up error:", e)
-      await ctx.reply(`❌ Ошибка: ${String(e)}`)
-    }
-  })
+function parseCommandArgs(raw: string | undefined): { durationMs: number; customArg: string | undefined } {
+  const parts = raw?.trim().split(/\s+/).filter(Boolean) ?? []
+  const durationMs = parts.length ? (parseDuration(parts[0]) ?? DEFAULT_DURATION_MS) : DEFAULT_DURATION_MS
+  const customArg = parts.slice(1).join(" ").trim() || undefined
+  return { durationMs, customArg }
 }
 
-async function handleAnalysis(
+async function runWithReply<T>(
+  ctx: Context,
+  label: string,
+  run: () => Promise<T>,
+  format: (r: T) => string,
+): Promise<void> {
+  try {
+    const result = await withTyping(ctx, run)
+    await ctx.reply(format(result))
+  } catch (e) {
+    console.error(`${label} error:`, e)
+    await ctx.reply(`❌ Ошибка: ${String(e)}`)
+  }
+}
+
+async function runAnalysis(
   ctx: Context,
   store: Store,
   label: string,
-  run: () => Promise<{ messages: number; sent: boolean; session?: import("./store.js").Session }>,
+  run: () => Promise<{ messages: number; sent: boolean; session?: Session }>,
 ): Promise<boolean> {
   try {
-    const chatId = ctx.chat!.id.toString()
+    const chat = chatId(ctx)
     const result = await withTyping(ctx, run)
-    if (result.session) await store.setSession(chatId, result.session)
+    if (result.session) await store.setSession(chat, result.session)
     if (!result.sent) await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет данных.`)
     return !!result.session
   } catch (e) {
@@ -261,39 +89,34 @@ async function handleAnalysis(
   }
 }
 
-async function handleTrends(ctx: Context, store: Store, sourceName: string, durationMs: number, customPrompt?: string): Promise<boolean> {
+function handleAnalysis(
+  ctx: Context, store: Store, sourceName: string,
+  durationMs: number, mode: "trends" | "topics", custom?: string,
+): Promise<boolean> {
   const since = new Date(Date.now() - durationMs)
-  return handleAnalysis(ctx, store, "Trends", () =>
-    runTrends(sourceName, { store, since, customPrompt }),
-  )
+  const label = mode === "trends" ? "Trends" : "Topics"
+  const run = mode === "trends"
+    ? () => runTrends(sourceName, { store, since, customPrompt: custom })
+    : () => runTopics(sourceName, { store, since, extraTopics: custom ? [custom] : undefined })
+  return runAnalysis(ctx, store, label, run)
 }
 
-async function handleTopics(ctx: Context, store: Store, sourceName: string, durationMs: number, adhocTopic?: string): Promise<boolean> {
-  const since = new Date(Date.now() - durationMs)
-  const extraTopics = adhocTopic ? [adhocTopic] : undefined
-  return handleAnalysis(ctx, store, "Topics", () =>
-    runTopics(sourceName, { store, since, extraTopics }),
-  )
+async function analyzeAndClear(
+  ctx: Context, store: Store, chat: string,
+  sourceName: string, durationMs: number, mode: "trends" | "topics", custom?: string,
+): Promise<void> {
+  const ok = await handleAnalysis(ctx, store, sourceName, durationMs, mode, custom)
+  if (ok) await store.clearPending(chat)
 }
 
-async function handleAuthors(ctx: Context, store: Store) {
-  try {
-    const result = await withTyping(ctx, () => runAuthors({ store }))
-    await ctx.reply(`✅ ${result.comments} комментариев, ${result.alerts} алертов.`)
-  } catch (e) {
-    console.error("Authors error:", e)
-    await ctx.reply(`❌ Ошибка: ${String(e)}`)
-  }
+function handleAuthors(ctx: Context, store: Store) {
+  return runWithReply(ctx, "Authors", () => runAuthors({ store }),
+    (r) => `✅ ${r.comments} комментариев, ${r.alerts} алертов.`)
 }
 
-async function handleHot(ctx: Context, store: Store) {
-  try {
-    const result = await withTyping(ctx, () => runHot({ store }))
-    await ctx.reply(`✅ ${result.total} топ-комментариев, ${result.alerts} горячих.`)
-  } catch (e) {
-    console.error("Hot error:", e)
-    await ctx.reply(`❌ Ошибка: ${String(e)}`)
-  }
+function handleHot(ctx: Context, store: Store) {
+  return runWithReply(ctx, "Hot", () => runHot({ store }),
+    (r) => `✅ ${r.total} топ-комментариев, ${r.alerts} горячих.`)
 }
 
 async function handleStatus(ctx: Context, store: Store) {
@@ -309,6 +132,221 @@ async function handleStatus(ctx: Context, store: Store) {
   await ctx.reply(
     `ℹ️ Статус:\n• Runtime: ${runtime}\n• LLM: ${llm.uri}\n• Sources: ${sourceNames}\n• Папка TG: ${folder ?? "—"}\n• Топиков: ${topics.length}\n• Авторов: ${authors.length}\n• Authors lastId: ${authorsId ?? "—"}\n• Подписчиков: ${subs.length}`,
   )
+}
+
+async function handleStart(ctx: Context, store: Store) {
+  await store.addSubscriber(chatId(ctx))
+  await ctx.reply("✅ Подписка оформлена.", { reply_markup: startKeyboard() })
+}
+
+async function handleFolder(ctx: Context, store: Store) {
+  const name = ctx.match?.toString().trim()
+  if (!name) {
+    const current = await store.getFolder()
+    return ctx.reply(current ? `📂 Текущая папка: ${current}` : "Папка не задана. /folder <имя>")
+  }
+  await store.setFolder(name)
+  await ctx.reply(`✅ Папка: ${name}`)
+}
+
+async function showAnalysisPicker(ctx: Context, store: Store, chat: string, durationMs: number): Promise<void> {
+  await store.setPending(chat, durationMs)
+  const topics = await store.getTrackedTopics()
+  await ctx.reply("Выберите анализ или введите свой промпт:", {
+    reply_markup: promptKeyboard(topics.length > 0),
+  })
+}
+
+async function dispatchButton(ctx: Context, store: Store, action: NonNullable<ButtonAction>): Promise<void> {
+  const chat = chatId(ctx)
+  await store.clearSession(chat)
+
+  switch (action.type) {
+    case "source": {
+      await store.setUserSource(chat, action.source.name)
+      await ctx.reply(`${action.source.label} выбран.`, { reply_markup: sourceKeyboard(action.source) })
+      break
+    }
+    case "analysis": {
+      await showAnalysisPicker(ctx, store, chat, action.durationMs)
+      break
+    }
+    case "authors": {
+      await handleAuthors(ctx, store)
+      break
+    }
+    case "hot": {
+      await handleHot(ctx, store)
+      break
+    }
+    case "status": {
+      await handleStatus(ctx, store)
+      break
+    }
+    case "back": {
+      await store.setUserSource(chat, "")
+      await ctx.reply("Выберите источник:", { reply_markup: startKeyboard() })
+      break
+    }
+  }
+}
+
+type TextState =
+  | { kind: "pending"; durationMs: number }
+  | { kind: "session"; session: Session }
+  | { kind: "source" }
+  | { kind: "none" }
+
+async function resolveTextState(store: Store, chat: string): Promise<TextState> {
+  const durationMs = await store.getPending(chat)
+  if (durationMs) return { kind: "pending", durationMs }
+  const session = await store.getSession(chat)
+  if (session) return { kind: "session", session }
+  const source = await store.getUserSource(chat)
+  if (source) return { kind: "source" }
+  return { kind: "none" }
+}
+
+async function handleText(ctx: Context, store: Store, text: string): Promise<void> {
+  const chat = chatId(ctx)
+  const state = await resolveTextState(store, chat)
+
+  switch (state.kind) {
+    case "pending": {
+      const sourceName = await resolveSource(store, chat)
+      await analyzeAndClear(ctx, store, chat, sourceName, state.durationMs, "trends", text)
+      return
+    }
+    case "session": {
+      await runWithReply(ctx, "Follow-up",
+        async () => {
+          const result = await followUp(state.session, text)
+          await store.setSession(chat, result.session)
+          return result
+        },
+        (r) => r.text)
+      return
+    }
+    case "source": {
+      const customDuration = parseDuration(text)
+      if (customDuration) {
+        await showAnalysisPicker(ctx, store, chat, customDuration)
+      } else {
+        const sourceName = await resolveSource(store, chat)
+        await analyzeAndClear(ctx, store, chat, sourceName, DEFAULT_DURATION_MS, "trends", text)
+      }
+      return
+    }
+    case "none": {
+      await ctx.reply("Нет активного контекста. Выберите источник.")
+    }
+  }
+}
+
+interface ToggleConfig {
+  title: string
+  emptyMsg: string
+  addMsg: (name: string) => string
+  removeMsg: (name: string) => string
+  getAll: () => Promise<string[]>
+  isTracked: (name: string) => Promise<boolean>
+  track: (name: string) => Promise<void>
+  untrack: (name: string) => Promise<void>
+}
+
+function toggleCommand(store: Store, cfg: ToggleConfig) {
+  return adminOnly(async (ctx: Context) => {
+    const name = ctx.match?.toString().trim()
+    if (!name) {
+      const items = await cfg.getAll()
+      if (!items.length) return ctx.reply(cfg.emptyMsg)
+      return ctx.reply(`${cfg.title}:\n${items.map((t) => `• <code>${t}</code>`).join("\n")}`, { parse_mode: "HTML" })
+    }
+    if (await cfg.isTracked(name)) {
+      await cfg.untrack(name)
+      await ctx.reply(cfg.removeMsg(name))
+    } else {
+      await cfg.track(name)
+      await ctx.reply(cfg.addMsg(name))
+    }
+  }, ADMIN_DENIED)
+}
+
+function analysisCommand(store: Store, mode: "trends" | "topics") {
+  return adminOnly(async (ctx: Context) => {
+    const { durationMs, customArg } = parseCommandArgs(ctx.match?.toString())
+    const sourceName = await resolveSource(store, chatId(ctx))
+    await handleAnalysis(ctx, store, sourceName, durationMs, mode, customArg)
+  })
+}
+
+export function registerCommands(bot: Bot, store: Store) {
+  bot.use(async (ctx, next) => {
+    const text = ctx.message?.text
+    if (text?.startsWith("/")) {
+      await store.clearSession(chatId(ctx))
+    }
+    await next()
+  })
+
+  bot.command("start", async (ctx) => handleStart(ctx, store))
+  bot.command("folder", adminOnly((ctx) => handleFolder(ctx, store), ADMIN_DENIED))
+
+  bot.command("topic", toggleCommand(store, {
+    title: "🏷️ Топики",
+    emptyMsg: "Нет топиков. /topic <название>",
+    addMsg: (n) => `✅ Топик добавлен: ${n}`,
+    removeMsg: (n) => `🗑️ Топик удалён: ${n}`,
+    getAll: () => store.getTrackedTopics(),
+    isTracked: (n) => store.isTrackedTopic(n),
+    track: (n) => store.trackTopic(n),
+    untrack: (n) => store.untrackTopic(n),
+  }))
+
+  bot.command("follow", toggleCommand(store, {
+    title: "📝 Авторы",
+    emptyMsg: "Нет авторов. /follow <имя>",
+    addMsg: (n) => `✅ Отслеживаю: ${n}`,
+    removeMsg: (n) => `🗑️ Больше не отслеживаю: ${n}`,
+    getAll: () => store.getTrackedAuthors(),
+    isTracked: (n) => store.isTrackedAuthor(n),
+    track: (n) => store.trackAuthor(n),
+    untrack: (n) => store.untrackAuthor(n),
+  }))
+
+  bot.command("status", adminOnly(async (ctx) => handleStatus(ctx, store)))
+  bot.command("trends", analysisCommand(store, "trends"))
+  bot.command("topics", analysisCommand(store, "topics"))
+
+  bot.on("callback_query:data", async (ctx) => {
+    if (!isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery()
+    const data = ctx.callbackQuery.data
+    if (!data.startsWith(CALLBACK_PREFIX)) return ctx.answerCallbackQuery()
+
+    const chat = chatId(ctx)
+    const durationMs = await store.getPending(chat)
+    if (!durationMs) {
+      await ctx.answerCallbackQuery({ text: "Сессия истекла. Выберите период заново." })
+      return
+    }
+
+    await ctx.answerCallbackQuery()
+
+    const mode = data.slice(CALLBACK_PREFIX.length) as "trends" | "topics"
+    const sourceName = await resolveSource(store, chat)
+    await analyzeAndClear(ctx, store, chat, sourceName, durationMs, mode)
+  })
+
+  bot.on("message:text", async (ctx) => {
+    const text = ctx.message.text
+    const action = resolveButton(text)
+    if (action) {
+      if (!isAdmin(ctx.from?.id)) return
+      return dispatchButton(ctx, store, action)
+    }
+    if (!isAdmin(ctx.from?.id)) return
+    await handleText(ctx, store, text)
+  })
 }
 
 export async function setCommandMenu(bot: Bot) {
