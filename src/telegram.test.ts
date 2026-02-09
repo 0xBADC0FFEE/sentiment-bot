@@ -73,6 +73,13 @@ describe("formatHotAlert", () => {
     expect(msg).not.toContain("→")
   })
 
+  it("formats negative likes without trailing +", () => {
+    const hot = { ...comment, likes: -1 }
+    const msg = formatHotAlert(hot)
+    expect(msg).toContain("-1")
+    expect(msg).not.toContain("-1+")
+  })
+
   it("formats hot comment with reply", () => {
     const hot = { ...comment, likes: 36, replyTo: "Satoshi" }
     const msg = formatHotAlert(hot)
