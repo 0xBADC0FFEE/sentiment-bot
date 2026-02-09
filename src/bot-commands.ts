@@ -5,6 +5,7 @@ import type { Store } from "./store.js"
 import { startKeyboard, sourceKeyboard, resolveButton } from "./keyboard.js"
 import { getSource, getSources } from "./sources/registry.js"
 import { runTrends, runTopics, runAuthors, runHot } from "./pipeline.js"
+import { followUp } from "./analyzer.js"
 import { llm, telegram } from "./config.js"
 
 function isAdmin(userId: number | undefined): boolean {
@@ -27,6 +28,15 @@ function parseDuration(input: string): number | undefined {
 }
 
 export function registerCommands(bot: Bot, store: Store) {
+  // Middleware: clear session on any /command
+  bot.use(async (ctx, next) => {
+    const text = ctx.message?.text
+    if (text?.startsWith("/")) {
+      await store.clearSession(ctx.chat!.id.toString())
+    }
+    await next()
+  })
+
   // /start — subscribe + show source keyboard
   bot.command("start", async (ctx) => {
     await store.addSubscriber(ctx.chat.id.toString())
@@ -87,13 +97,15 @@ export function registerCommands(bot: Bot, store: Store) {
     await handleStatus(ctx, store)
   })
 
-  // /trends [duration] — manual trigger (picks user's active source or defaults to first)
+  // /trends [duration] [custom prompt] — manual trigger
   bot.command("trends", async (ctx) => {
     if (!isAdmin(ctx.from?.id)) return
     const arg = ctx.match?.trim()
-    const durationMs = arg ? (parseDuration(arg) ?? 86_400_000) : 86_400_000
+    const parts = arg ? arg.split(/\s+/) : []
+    const durationMs = parts.length ? (parseDuration(parts[0]) ?? 86_400_000) : 86_400_000
+    const customPrompt = parts.slice(1).join(" ").trim() || undefined
     const sourceName = (await store.getUserSource(ctx.chat.id.toString())) || getSources()[0].name
-    await handleTrends(ctx, store, sourceName, durationMs)
+    await handleTrends(ctx, store, sourceName, durationMs, customPrompt)
   })
 
   // /topics [duration] [adhoc topic] — manual trigger
@@ -107,56 +119,84 @@ export function registerCommands(bot: Bot, store: Store) {
     await handleTopics(ctx, store, sourceName, durationMs, adhocTopic)
   })
 
-  // Keyboard button handler (catch-all for text messages)
+  // Text messages: keyboard buttons or follow-up
   bot.on("message:text", async (ctx) => {
     const text = ctx.message.text
     const action = resolveButton(text)
-    if (!action) return
+
+    // Keyboard button → clear session + handle
+    if (action) {
+      if (!isAdmin(ctx.from?.id)) return
+      const chatId = ctx.chat.id.toString()
+      await store.clearSession(chatId)
+
+      switch (action.type) {
+        case "source": {
+          await store.setUserSource(chatId, action.source.name)
+          await ctx.reply(`${action.source.label} выбран.`, { reply_markup: sourceKeyboard(action.source) })
+          break
+        }
+        case "trends": {
+          const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
+          await handleTrends(ctx, store, sourceName, action.durationMs)
+          break
+        }
+        case "topics": {
+          const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
+          await handleTopics(ctx, store, sourceName, action.durationMs)
+          break
+        }
+        case "authors": {
+          await handleAuthors(ctx, store)
+          break
+        }
+        case "hot": {
+          await handleHot(ctx, store)
+          break
+        }
+        case "status": {
+          await handleStatus(ctx, store)
+          break
+        }
+        case "back": {
+          await store.setUserSource(chatId, "")
+          await ctx.reply("Выберите источник:", { reply_markup: startKeyboard() })
+          break
+        }
+      }
+      return
+    }
+
+    // Free text → follow-up
     if (!isAdmin(ctx.from?.id)) return
-
     const chatId = ctx.chat.id.toString()
+    const session = await store.getSession(chatId)
+    if (!session) {
+      await ctx.reply("Нет активного контекста. Запустите /trends или /topics.")
+      return
+    }
 
-    switch (action.type) {
-      case "source": {
-        await store.setUserSource(chatId, action.source.name)
-        await ctx.reply(`${action.source.label} выбран.`, { reply_markup: sourceKeyboard(action.source) })
-        break
-      }
-      case "trends": {
-        const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
-        await handleTrends(ctx, store, sourceName, action.durationMs)
-        break
-      }
-      case "topics": {
-        const sourceName = (await store.getUserSource(chatId)) || getSources()[0].name
-        await handleTopics(ctx, store, sourceName, action.durationMs)
-        break
-      }
-      case "authors": {
-        await handleAuthors(ctx, store)
-        break
-      }
-      case "hot": {
-        await handleHot(ctx, store)
-        break
-      }
-      case "status": {
-        await handleStatus(ctx, store)
-        break
-      }
-      case "back": {
-        await store.setUserSource(chatId, "")
-        await ctx.reply("Выберите источник:", { reply_markup: startKeyboard() })
-        break
-      }
+    try {
+      const result = await withTyping(ctx, () => followUp(session, text))
+      await store.setSession(chatId, result.session)
+      await ctx.reply(result.text)
+    } catch (e) {
+      console.error("Follow-up error:", e)
+      await ctx.reply(`❌ Ошибка: ${String(e)}`)
     }
   })
 }
 
-async function handleTrends(ctx: Context, store: Store, sourceName: string, durationMs: number) {
+async function handleTrends(ctx: Context, store: Store, sourceName: string, durationMs: number, customPrompt?: string) {
   try {
+    const chatId = ctx.chat!.id.toString()
     const since = new Date(Date.now() - durationMs)
-    const result = await withTyping(ctx, () => runTrends(sourceName, { store, since, onLog: console.log }))
+    const result = await withTyping(ctx, () =>
+      runTrends(sourceName, { store, since, customPrompt, onLog: console.log }),
+    )
+    if (result.session) {
+      await store.setSession(chatId, result.session)
+    }
     if (!result.sent) {
       await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет трендов.`)
     }
@@ -168,9 +208,15 @@ async function handleTrends(ctx: Context, store: Store, sourceName: string, dura
 
 async function handleTopics(ctx: Context, store: Store, sourceName: string, durationMs: number, adhocTopic?: string) {
   try {
+    const chatId = ctx.chat!.id.toString()
     const since = new Date(Date.now() - durationMs)
     const extraTopics = adhocTopic ? [adhocTopic] : undefined
-    const result = await withTyping(ctx, () => runTopics(sourceName, { store, since, extraTopics, onLog: console.log }))
+    const result = await withTyping(ctx, () =>
+      runTopics(sourceName, { store, since, extraTopics, onLog: console.log }),
+    )
+    if (result.session) {
+      await store.setSession(chatId, result.session)
+    }
     if (!result.sent) {
       await ctx.reply(`ℹ️ ${result.messages} сообщений — недостаточно или нет данных.`)
     }

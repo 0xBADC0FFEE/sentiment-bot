@@ -1,6 +1,7 @@
 import { createProvider } from "./llm/index.js"
 import { MAX_ITEMS, MIN_ITEMS, estimateTokens, getInputBudget } from "./config.js"
 import type { Message } from "./types.js"
+import type { Session } from "./store.js"
 
 export interface Item {
   text: string
@@ -82,46 +83,69 @@ export function formatItems(items: Item[], tokenBudget = Infinity): { text: stri
   return { text: sections.join("\n"), count }
 }
 
-export async function analyzeTrends(items: Item[]): Promise<{ text: string; itemCount: number } | null> {
-  if (items.length < MIN_ITEMS) return null
+// --- Prompt constants ---
 
-  const system =
-    "Ты аналитик российского фондового рынка. Анализируешь сообщения с инвестиционных площадок. Пиши максимально кратко, жертвуя грамматикой ради краткости. Отвечай plain text без Markdown-разметки (без #, **, ---, ```). Используй только символы • для списков и пустые строки для разделения секций."
+export const ANALYST_SYSTEM =
+  "Ты аналитик российского фондового рынка. Анализируешь сообщения с инвестиционных площадок. Пиши максимально кратко, жертвуя грамматикой ради краткости. Отвечай plain text без Markdown-разметки (без #, **, ---, ```). Используй только символы • для списков и пустые строки для разделения секций."
 
-  const userPrefix =
-    "Проанализируй сообщения ниже. Определи компании и тикеры из контекста обсуждений, даже если они упомянуты сокращённо или неточно.\n\n"
+export const TRENDS_PROMPT =
+  "Проанализируй сообщения ниже. Определи компании и тикеры из контекста обсуждений, даже если они упомянуты сокращённо или неточно.\n\n{data}\n\nНапиши краткий обзор (2-3 предложения об общем настроении на рынке), затем тезисы по компаниям:\n• Компания (ТИКЕР) — настроение — краткий тезис\n\nФормат: plain text, без Markdown. Максимум 15 тезисов.\n\nЕсли значимых трендов нет, ответь: НЕТ ТРЕНДОВ"
 
-  const userSuffix =
-    "\n\nНапиши краткий обзор (2-3 предложения об общем настроении на рынке), затем тезисы по компаниям:\n• Компания (ТИКЕР) — настроение — краткий тезис\n\nФормат: plain text, без Markdown. Максимум 15 тезисов.\n\nЕсли значимых трендов нет, ответь: НЕТ ТРЕНДОВ"
-
-  const budget = getInputBudget() - estimateTokens(system) - estimateTokens(userPrefix) - estimateTokens(userSuffix)
-  const formatted = formatItems(items, budget)
-
-  const llm = createProvider()
-  const text = await llm.complete(system, userPrefix + formatted.text + userSuffix, 4096)
-
-  if (text.includes("НЕТ ТРЕНДОВ")) return null
-  return { text, itemCount: formatted.count }
+export function buildTopicsPrompt(topics: string[]): string {
+  const topicList = topics.map((t) => `• ${t}`).join("\n")
+  return `Сообщения:\n\n{data}\n\nИнтересующие топики:\n${topicList}\n\nЗадача: для каждого топика собери всё, что обсуждают в сообщениях. Каждый топик может содержать несколько ключевых слов через запятую — это синонимы одного топика. Ищи широко — любые формы слов, сокращения, сленг, косвенные упоминания.\n\nДля каждого найденного топика выведи 2-3 тезиса по 1-3 предложения. Пиши максимально кратко, жертвуя грамматикой ради краткости.\n\nФормат:\nНАЗВАНИЕ ТОПИКА\n• тезис\n• тезис\n\nПропусти топик только если он вообще никак не упоминается. Если ни один топик не найден, ответь: НЕТ ДАННЫХ`
 }
 
-export async function analyzeTopics(items: Item[], topics: string[]): Promise<{ text: string; itemCount: number } | null> {
+// --- Unified analyze ---
+
+export interface AnalysisResult {
+  text: string
+  itemCount: number
+  session: Session
+}
+
+export async function analyze(
+  items: Item[],
+  opts: { system?: string; prompt: string },
+): Promise<AnalysisResult | null> {
   if (items.length < MIN_ITEMS) return null
 
-  const topicList = topics.map((t) => `• ${t}`).join("\n")
-
-  const system =
-    "Ты аналитик российского фондового рынка. Анализируешь сообщения с инвестиционных площадок. Отвечай plain text без Markdown-разметки (без #, **, ---, ```). Используй только символы • для списков и пустые строки для разделения секций."
-
-  const userPrefix = "Сообщения:\n\n"
-
-  const userSuffix = `\n\nИнтересующие топики:\n${topicList}\n\nЗадача: для каждого топика собери всё, что обсуждают в сообщениях. Каждый топик может содержать несколько ключевых слов через запятую — это синонимы одного топика. Ищи широко — любые формы слов, сокращения, сленг, косвенные упоминания.\n\nДля каждого найденного топика выведи 2-3 тезиса по 1-3 предложения. Пиши максимально кратко, жертвуя грамматикой ради краткости.\n\nФормат:\nНАЗВАНИЕ ТОПИКА\n• тезис\n• тезис\n\nПропусти топик только если он вообще никак не упоминается. Если ни один топик не найден, ответь: НЕТ ДАННЫХ`
-
-  const budget = getInputBudget() - estimateTokens(system) - estimateTokens(userPrefix) - estimateTokens(userSuffix)
+  const system = opts.system ?? ANALYST_SYSTEM
+  const budget = getInputBudget() - estimateTokens(system) - estimateTokens(opts.prompt)
   const formatted = formatItems(items, budget)
 
-  const llm = createProvider()
-  const text = await llm.complete(system, userPrefix + formatted.text + userSuffix, 4096)
+  const userMessage = opts.prompt.replace("{data}", formatted.text)
 
-  if (text.includes("НЕТ ДАННЫХ")) return null
-  return { text, itemCount: formatted.count }
+  const llm = createProvider()
+  const text = await llm.complete(system, userMessage, 4096)
+
+  if (text.includes("НЕТ ТРЕНДОВ") || text.includes("НЕТ ДАННЫХ")) return null
+
+  return {
+    text,
+    itemCount: formatted.count,
+    session: {
+      system,
+      messages: [
+        { role: "user", content: userMessage },
+        { role: "assistant", content: text },
+      ],
+    },
+  }
+}
+
+// --- Follow-up ---
+
+export async function followUp(
+  session: Session,
+  userMessage: string,
+): Promise<{ text: string; session: Session }> {
+  const messages = [...session.messages, { role: "user" as const, content: userMessage }]
+
+  const llm = createProvider()
+  const text = await llm.chat(session.system, messages, 4096)
+
+  messages.push({ role: "assistant", content: text })
+
+  return { text, session: { system: session.system, messages } }
 }

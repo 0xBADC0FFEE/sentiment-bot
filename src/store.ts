@@ -1,5 +1,11 @@
 import { Redis } from "@upstash/redis"
 import { kv } from "./config.js"
+import type { ChatMessage } from "./llm/types.js"
+
+export interface Session {
+  system: string
+  messages: ChatMessage[]
+}
 
 export class Store {
   private redis: Redis
@@ -107,5 +113,18 @@ export class Store {
 
   async markHotSeen(commentId: string): Promise<void> {
     await this.redis.set(this.key(`hot:seen:${commentId}`), 1, { ex: 259200 })
+  }
+
+  // Chat session (1-hour TTL)
+  async getSession(chatId: string): Promise<Session | null> {
+    return this.redis.get<Session>(this.key(`chat:session:${chatId}`))
+  }
+
+  async setSession(chatId: string, session: Session): Promise<void> {
+    await this.redis.set(this.key(`chat:session:${chatId}`), session, { ex: 3600 })
+  }
+
+  async clearSession(chatId: string): Promise<void> {
+    await this.redis.del(this.key(`chat:session:${chatId}`))
   }
 }

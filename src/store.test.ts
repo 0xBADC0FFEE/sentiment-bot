@@ -5,10 +5,12 @@ function mockRedis() {
   return {
     get: vi.fn(),
     set: vi.fn(),
+    del: vi.fn(),
     sadd: vi.fn(),
     srem: vi.fn(),
     smembers: vi.fn(),
     sismember: vi.fn(),
+    exists: vi.fn(),
   }
 }
 
@@ -91,14 +93,15 @@ describe("Store", () => {
     expect(redis.sadd).toHaveBeenCalledWith("authors:tracked", "elvis")
   })
 
-  it("isHotSeen checks set", async () => {
-    redis.sismember.mockResolvedValue(0)
+  it("isHotSeen checks existence", async () => {
+    redis.exists.mockResolvedValue(0)
     expect(await store.isHotSeen("c123")).toBe(false)
+    expect(redis.exists).toHaveBeenCalledWith("hot:seen:c123")
   })
 
-  it("markHotSeen adds to set", async () => {
-    redis.sadd.mockResolvedValue(1)
+  it("markHotSeen sets key with TTL", async () => {
+    redis.set.mockResolvedValue("OK")
     await store.markHotSeen("c123")
-    expect(redis.sadd).toHaveBeenCalledWith("hot:seen", "c123")
+    expect(redis.set).toHaveBeenCalledWith("hot:seen:c123", 1, { ex: 259200 })
   })
 })

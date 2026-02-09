@@ -2,7 +2,8 @@ import { Store } from "./store.js"
 import { getSource } from "./sources/registry.js"
 import { alenkaAuth, detectAuthorAlerts, detectHotAlerts } from "./sources/alenka/index.js"
 import { fetchCommentPage, parseComments, scrapeTopComments } from "./sources/alenka/scraper.js"
-import { analyzeTrends, analyzeTopics, toItems } from "./analyzer.js"
+import { analyze, TRENDS_PROMPT, buildTopicsPrompt, toItems } from "./analyzer.js"
+import type { Session } from "./store.js"
 import { createBot, formatAlert, broadcast } from "./telegram.js"
 import { telegram, MIN_ITEMS, MAX_ITEMS } from "./config.js"
 import type { Alert, Message } from "./types.js"
@@ -12,6 +13,7 @@ export interface PipelineOpts {
   botToken?: string
   since?: Date
   extraTopics?: string[]
+  customPrompt?: string
   onLog?: (msg: string) => void
 }
 
@@ -20,6 +22,7 @@ export interface PipelineOpts {
 export interface TrendsResult {
   messages: number
   sent: boolean
+  session?: Session
 }
 
 export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<TrendsResult> {
@@ -38,8 +41,10 @@ export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Pr
     return { messages: messages.length, sent: false }
   }
 
+  const prompt = opts.customPrompt ? `${opts.customPrompt}\n\nДанные:\n\n{data}` : TRENDS_PROMPT
+
   log(`🧠 Analyzing trends...`)
-  const result = await analyzeTrends(toItems(messages))
+  const result = await analyze(toItems(messages), { prompt })
 
   if (!result) {
     log("  No meaningful trends")
@@ -53,7 +58,7 @@ export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Pr
   }
 
   log("✅ Done")
-  return { messages: messages.length, sent: !!result }
+  return { messages: messages.length, sent: !!result, session: result?.session }
 }
 
 // --- Generic: topics for any source ---
@@ -61,6 +66,7 @@ export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Pr
 export interface TopicsResult {
   messages: number
   sent: boolean
+  session?: Session
 }
 
 export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Promise<TopicsResult> {
@@ -76,6 +82,8 @@ export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Pr
     return { messages: 0, sent: false }
   }
 
+  log(`🏷️ Analyzing topics [${topics.join(", ")}]...`)
+
   log(`📥 Fetching ${source.label} messages since ${since.toISOString()}...`)
   const messages = await source.fetchMessages(since)
   log(`  ${messages.length} messages`)
@@ -85,8 +93,7 @@ export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Pr
     return { messages: messages.length, sent: false }
   }
 
-  log(`🏷️ Analyzing topics [${topics.join(", ")}]...`)
-  const result = await analyzeTopics(toItems(messages), topics)
+  const result = await analyze(toItems(messages), { prompt: buildTopicsPrompt(topics) })
 
   if (!result) {
     log("  No topic data")
@@ -100,7 +107,7 @@ export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Pr
   }
 
   log("✅ Done")
-  return { messages: messages.length, sent: !!result }
+  return { messages: messages.length, sent: !!result, session: result?.session }
 }
 
 // --- Alenka-specific: authors ---
