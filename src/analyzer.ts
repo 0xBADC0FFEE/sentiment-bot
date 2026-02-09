@@ -1,7 +1,13 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import { createProvider } from "./llm/index.js"
 import { MAX_ITEMS, MIN_ITEMS, estimateTokens, getInputBudget } from "./config.js"
 import type { Message } from "./types.js"
 import type { Session } from "./store.js"
+
+function loadPrompt(name: string): string {
+  return readFileSync(join(process.cwd(), "prompts", name), "utf-8").trim()
+}
 
 export interface Item {
   text: string
@@ -83,17 +89,15 @@ export function formatItems(items: Item[], tokenBudget = Infinity): { text: stri
   return { text: sections.join("\n"), count }
 }
 
-// --- Prompt constants ---
+// --- Prompts (loaded from prompts/*.md) ---
 
-export const ANALYST_SYSTEM =
-  "Ты аналитик российского фондового рынка. Анализируешь сообщения с инвестиционных площадок. Пиши максимально кратко, жертвуя грамматикой ради краткости. Отвечай plain text без Markdown-разметки (без #, **, ---, ```). Используй только символы • для списков и пустые строки для разделения секций."
-
-export const TRENDS_PROMPT =
-  "Проанализируй сообщения ниже. Определи компании и тикеры из контекста обсуждений, даже если они упомянуты сокращённо или неточно.\n\n{data}\n\nНапиши краткий обзор (2-3 предложения об общем настроении на рынке), затем тезисы по компаниям:\n• Компания (ТИКЕР) — настроение — краткий тезис\n\nФормат: plain text, без Markdown. Максимум 15 тезисов.\n\nЕсли значимых трендов нет, ответь: НЕТ ТРЕНДОВ"
+export const ANALYST_SYSTEM = loadPrompt("system.md")
+export const TRENDS_PROMPT = loadPrompt("trends.md")
+const TOPICS_TEMPLATE = loadPrompt("topics.md")
 
 export function buildTopicsPrompt(topics: string[]): string {
   const topicList = topics.map((t) => `• ${t}`).join("\n")
-  return `Сообщения:\n\n{data}\n\nИнтересующие топики:\n${topicList}\n\nЗадача: для каждого топика собери всё, что обсуждают в сообщениях. Каждый топик может содержать несколько ключевых слов через запятую — это синонимы одного топика. Ищи широко — любые формы слов, сокращения, сленг, косвенные упоминания.\n\nДля каждого найденного топика выведи 2-3 тезиса по 1-3 предложения. Пиши максимально кратко, жертвуя грамматикой ради краткости.\n\nФормат:\nНАЗВАНИЕ ТОПИКА\n• тезис\n• тезис\n\nПропусти топик только если он вообще никак не упоминается. Если ни один топик не найден, ответь: НЕТ ДАННЫХ`
+  return TOPICS_TEMPLATE.replace("{topics}", topicList)
 }
 
 // --- Unified analyze ---
