@@ -95,6 +95,8 @@ After `/trends` or `/topics`, send free text to ask follow-up questions in the s
 | `groq://llama-3.3-70b-versatile` | 128k | Fast inference |
 | `openrouter://deepseek/deepseek-r1-0528:free` | 164k | Free |
 
+## [Bot Flow](FLOW.md)
+
 ## Project Structure
 
 ```
