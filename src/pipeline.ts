@@ -38,14 +38,14 @@ async function broadcastAlert(bot: Bot, subs: string[], alert: Alert) {
 
 // --- Generic: unified analysis (trends/topics) ---
 
-export interface AnalysisResult {
+export interface PipelineResult {
   messages: number
   sent: boolean
   session?: Session
 }
 
-export type TrendsResult = AnalysisResult
-export type TopicsResult = AnalysisResult
+export type TrendsResult = PipelineResult
+export type TopicsResult = PipelineResult
 
 interface RunAnalysisOpts {
   alertType: "trends" | "topics"
@@ -55,7 +55,7 @@ interface RunAnalysisOpts {
   bot: Bot
 }
 
-async function runAnalysis(opts: RunAnalysisOpts): Promise<AnalysisResult> {
+async function runAnalysis(opts: RunAnalysisOpts): Promise<PipelineResult> {
   if (opts.messages.length < MIN_ITEMS) {
     console.log(`  Need ≥${MIN_ITEMS}, skipping`)
     return { messages: opts.messages.length, sent: false }
@@ -78,7 +78,12 @@ async function runAnalysis(opts: RunAnalysisOpts): Promise<AnalysisResult> {
   return { messages: opts.messages.length, sent: !!result, session: result?.session }
 }
 
-export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<TrendsResult> {
+async function fetchAndAnalyze(
+  sourceName: string,
+  alertType: "trends" | "topics",
+  prompt: string,
+  opts: PipelineOpts,
+): Promise<PipelineResult> {
   const { store, bot } = resolveOpts(opts)
   const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
   const source = getSource(sourceName)
@@ -87,27 +92,23 @@ export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Pr
   const messages = await source.fetchMessages(since)
   console.log(`  ${messages.length} messages`)
 
+  return runAnalysis({ alertType, prompt, messages, store, bot })
+}
+
+export function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<TrendsResult> {
   const prompt = opts.customPrompt ? `${opts.customPrompt}\n\nДанные:\n\n{data}` : TRENDS_PROMPT
-  return runAnalysis({ alertType: "trends", prompt, messages, store, bot })
+  return fetchAndAnalyze(sourceName, "trends", prompt, opts)
 }
 
 export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Promise<TopicsResult> {
-  const { store, bot } = resolveOpts(opts)
-  const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
-  const source = getSource(sourceName)
-
+  const store = opts.store ?? new Store()
   const topics = opts.extraTopics?.length ? opts.extraTopics : await store.getTrackedTopics()
   if (topics.length === 0) {
     console.log("❌ No topics tracked. Use /topic <name>.")
     return { messages: 0, sent: false }
   }
-
   console.log(`🏷️ Analyzing topics [${topics.join(", ")}]...`)
-  console.log(`📥 Fetching ${source.label} messages since ${since.toISOString()}...`)
-  const messages = await source.fetchMessages(since)
-  console.log(`  ${messages.length} messages`)
-
-  return runAnalysis({ alertType: "topics", prompt: buildTopicsPrompt(topics), messages, store, bot })
+  return fetchAndAnalyze(sourceName, "topics", buildTopicsPrompt(topics), { ...opts, store })
 }
 
 // --- Alenka-specific: authors ---

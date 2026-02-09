@@ -73,39 +73,30 @@ export class Store {
     await this.redis.set(`source:alenka:${feature}:lastId`, id)
   }
 
+  // Generic tracked set helpers
+  private trackedSet(key: string) {
+    return {
+      add: (name: string) => this.redis.sadd(key, name) as Promise<unknown> as Promise<void>,
+      remove: (name: string) => this.redis.srem(key, name) as Promise<unknown> as Promise<void>,
+      members: () => this.redis.smembers(key),
+      has: async (name: string) => (await this.redis.sismember(key, name)) === 1,
+    }
+  }
+
+  private topics = this.trackedSet("topics:tracked")
+  private authors = this.trackedSet("authors:tracked")
+
   // Topics (shared across all sources)
-  async trackTopic(name: string): Promise<void> {
-    await this.redis.sadd("topics:tracked", name)
-  }
-
-  async untrackTopic(name: string): Promise<void> {
-    await this.redis.srem("topics:tracked", name)
-  }
-
-  async getTrackedTopics(): Promise<string[]> {
-    return this.redis.smembers("topics:tracked")
-  }
-
-  async isTrackedTopic(name: string): Promise<boolean> {
-    return (await this.redis.sismember("topics:tracked", name)) === 1
-  }
+  trackTopic = (name: string) => this.topics.add(name)
+  untrackTopic = (name: string) => this.topics.remove(name)
+  getTrackedTopics = () => this.topics.members()
+  isTrackedTopic = (name: string) => this.topics.has(name)
 
   // Authors (alenka-specific)
-  async trackAuthor(name: string): Promise<void> {
-    await this.redis.sadd("authors:tracked", name)
-  }
-
-  async untrackAuthor(name: string): Promise<void> {
-    await this.redis.srem("authors:tracked", name)
-  }
-
-  async getTrackedAuthors(): Promise<string[]> {
-    return this.redis.smembers("authors:tracked")
-  }
-
-  async isTrackedAuthor(name: string): Promise<boolean> {
-    return (await this.redis.sismember("authors:tracked", name)) === 1
-  }
+  trackAuthor = (name: string) => this.authors.add(name)
+  untrackAuthor = (name: string) => this.authors.remove(name)
+  getTrackedAuthors = () => this.authors.members()
+  isTrackedAuthor = (name: string) => this.authors.has(name)
 
   // Hot comments seen (alenka-specific, 3-day TTL per comment)
   async isHotSeen(commentId: string): Promise<boolean> {
