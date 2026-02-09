@@ -1,10 +1,6 @@
 import { Bot, InputMediaBuilder } from "grammy"
 import type { Alert, Message } from "./types.js"
 
-export function createBot(token: string) {
-  return new Bot(token)
-}
-
 function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }

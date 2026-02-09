@@ -132,7 +132,7 @@ export function parseComments(html: string): Comment[] {
   return comments
 }
 
-export async function fetchCommentPage(
+async function fetchCommentPage(
   path: string,
   cookie: string,
   page = 1,
@@ -189,7 +189,7 @@ export async function scrapeNewComments(
   return all
 }
 
-export function parseLastPage(html: string): number {
+function parseLastPage(html: string): number {
   const $ = cheerio.load(html)
   let max = 1
   $(".paginator__link").each((_, el) => {

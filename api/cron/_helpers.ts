@@ -13,7 +13,7 @@ export function withCronAuth(name: string, fn: () => Promise<object>): CronHandl
     try {
       const result = await fn()
       res.setHeader("Content-Type", "application/json")
-      res.end(JSON.stringify(Object.assign({ ok: true }, result)))
+      res.end(JSON.stringify({ ok: true, ...result }))
     } catch (e) {
       console.error(`Cron ${name} error:`, e)
       res.statusCode = 500

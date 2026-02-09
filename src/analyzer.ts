@@ -91,7 +91,7 @@ export function formatItems(items: Item[], tokenBudget = Infinity): { text: stri
 
 // --- Prompts (loaded from prompts/*.md) ---
 
-export const ANALYST_SYSTEM = loadPrompt("system.md")
+const ANALYST_SYSTEM = loadPrompt("system.md")
 export const TRENDS_PROMPT = loadPrompt("trends.md")
 const TOPICS_TEMPLATE = loadPrompt("topics.md")
 
@@ -102,7 +102,7 @@ export function buildTopicsPrompt(topics: string[]): string {
 
 // --- Unified analyze ---
 
-export interface AnalysisResult {
+interface AnalysisResult {
   text: string
   itemCount: number
   session: Session

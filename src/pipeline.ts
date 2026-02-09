@@ -4,10 +4,10 @@ import { alenkaAuth, detectAuthorAlerts, detectHotAlerts, toMessage } from "./so
 import { scrapeNewComments, scrapeTopComments } from "./sources/alenka/scraper.js"
 import { analyze, TRENDS_PROMPT, buildTopicsPrompt, toItems } from "./analyzer.js"
 import type { Session } from "./store.js"
-import { createBot, formatAlert, broadcast } from "./telegram.js"
+import { Bot } from "grammy"
+import { formatAlert, broadcast } from "./telegram.js"
 import { telegram, MIN_ITEMS, ONE_DAY_MS } from "./config.js"
 import type { Alert, Message } from "./types.js"
-import type { Bot } from "grammy"
 
 function dateRange(messages: Message[]) {
   const dates = messages.map((m) => m.date.getTime())
@@ -25,7 +25,7 @@ export interface PipelineOpts {
 function resolveOpts(opts: PipelineOpts) {
   return {
     store: opts.store ?? new Store(),
-    bot: createBot(opts.botToken ?? telegram.botToken),
+    bot: new Bot(opts.botToken ?? telegram.botToken),
   }
 }
 
@@ -43,9 +43,6 @@ export interface PipelineResult {
   sent: boolean
   session?: Session
 }
-
-export type TrendsResult = PipelineResult
-export type TopicsResult = PipelineResult
 
 interface RunAnalysisOpts {
   alertType: "trends" | "topics"
@@ -71,7 +68,7 @@ async function runAnalysis(opts: RunAnalysisOpts): Promise<PipelineResult> {
     const alert: Alert = { type: opts.alertType, summary: result.text, dateRange: range, itemCount: result.itemCount }
     const subs = await opts.store.getSubscribers()
     console.log(`📢 Sending to ${subs.length} subscribers`)
-    await broadcast(opts.bot, subs, formatAlert(alert))
+    await broadcastAlert(opts.bot, subs, alert)
   }
 
   console.log("✅ Done")
@@ -95,12 +92,12 @@ async function fetchAndAnalyze(
   return runAnalysis({ alertType, prompt, messages, store, bot })
 }
 
-export function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<TrendsResult> {
+export function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<PipelineResult> {
   const prompt = opts.customPrompt ? `${opts.customPrompt}\n\nДанные:\n\n{data}` : TRENDS_PROMPT
   return fetchAndAnalyze(sourceName, "trends", prompt, opts)
 }
 
-export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Promise<TopicsResult> {
+export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Promise<PipelineResult> {
   const store = opts.store ?? new Store()
   const topics = opts.extraTopics?.length ? opts.extraTopics : await store.getTrackedTopics()
   if (topics.length === 0) {
