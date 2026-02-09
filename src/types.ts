@@ -14,8 +14,10 @@ export interface Message {
   commentUrl?: string
 }
 
+export type HotAlert = { type: "hot"; comment: Message }
+
 export type Alert =
   | { type: "trends"; summary: string; dateRange?: { from: Date; to: Date }; itemCount?: number }
   | { type: "topics"; summary: string; dateRange?: { from: Date; to: Date }; itemCount?: number }
   | { type: "author"; comment: Message }
-  | { type: "hot"; comment: Message }
+  | HotAlert

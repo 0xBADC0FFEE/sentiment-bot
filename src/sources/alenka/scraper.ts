@@ -145,7 +145,7 @@ export async function fetchCommentPage(
 }
 
 export interface ScrapeOpts {
-  lastSeenId?: string
+  lastSeenId?: string | number
   maxComments?: number
   maxAge?: Date
   onPage?: (comments: Comment[]) => Promise<void>
@@ -166,7 +166,7 @@ export async function scrapeNewComments(
     const pageComments: Comment[] = []
     let foundCutoff = false
     for (const c of comments) {
-      if (lastSeenId && c.id === lastSeenId) {
+      if (lastSeenId && Number(c.id) <= Number(lastSeenId)) {
         foundCutoff = true
         break
       }

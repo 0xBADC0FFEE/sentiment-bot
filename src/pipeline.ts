@@ -1,12 +1,13 @@
 import { Store } from "./store.js"
 import { getSource } from "./sources/registry.js"
 import { alenkaAuth, detectAuthorAlerts, detectHotAlerts, toMessage } from "./sources/alenka/index.js"
-import { fetchCommentPage, parseComments, scrapeTopComments } from "./sources/alenka/scraper.js"
+import { scrapeNewComments, scrapeTopComments } from "./sources/alenka/scraper.js"
 import { analyze, TRENDS_PROMPT, buildTopicsPrompt, toItems } from "./analyzer.js"
 import type { Session } from "./store.js"
 import { createBot, formatAlert, broadcast } from "./telegram.js"
-import { telegram, MIN_ITEMS, MAX_ITEMS, ONE_DAY_MS } from "./config.js"
+import { telegram, MIN_ITEMS, ONE_DAY_MS } from "./config.js"
 import type { Alert, Message } from "./types.js"
+import type { Bot } from "grammy"
 
 function dateRange(messages: Message[]) {
   const dates = messages.map((m) => m.date.getTime())
@@ -28,12 +29,53 @@ function resolveOpts(opts: PipelineOpts) {
   }
 }
 
-// --- Generic: trends for any source ---
+// --- Shared helpers ---
 
-export interface TrendsResult {
+async function broadcastAlert(bot: Bot, subs: string[], alert: Alert) {
+  const images = alert.type === "author" || alert.type === "hot" ? alert.comment.images : undefined
+  await broadcast(bot, subs, formatAlert(alert), images)
+}
+
+// --- Generic: unified analysis (trends/topics) ---
+
+export interface AnalysisResult {
   messages: number
   sent: boolean
   session?: Session
+}
+
+export type TrendsResult = AnalysisResult
+export type TopicsResult = AnalysisResult
+
+interface RunAnalysisOpts {
+  alertType: "trends" | "topics"
+  prompt: string
+  messages: Message[]
+  store: Store
+  bot: Bot
+}
+
+async function runAnalysis(opts: RunAnalysisOpts): Promise<AnalysisResult> {
+  if (opts.messages.length < MIN_ITEMS) {
+    console.log(`  Need ≥${MIN_ITEMS}, skipping`)
+    return { messages: opts.messages.length, sent: false }
+  }
+
+  console.log(`🧠 Analyzing ${opts.alertType}...`)
+  const result = await analyze(toItems(opts.messages), { prompt: opts.prompt })
+
+  if (!result) {
+    console.log(`  No meaningful ${opts.alertType}`)
+  } else {
+    const range = dateRange(opts.messages)
+    const alert: Alert = { type: opts.alertType, summary: result.text, dateRange: range, itemCount: result.itemCount }
+    const subs = await opts.store.getSubscribers()
+    console.log(`📢 Sending to ${subs.length} subscribers`)
+    await broadcast(opts.bot, subs, formatAlert(alert))
+  }
+
+  console.log("✅ Done")
+  return { messages: opts.messages.length, sent: !!result, session: result?.session }
 }
 
 export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<TrendsResult> {
@@ -45,36 +87,8 @@ export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Pr
   const messages = await source.fetchMessages(since)
   console.log(`  ${messages.length} messages`)
 
-  if (messages.length < MIN_ITEMS) {
-    console.log(`  Need ≥${MIN_ITEMS}, skipping`)
-    return { messages: messages.length, sent: false }
-  }
-
   const prompt = opts.customPrompt ? `${opts.customPrompt}\n\nДанные:\n\n{data}` : TRENDS_PROMPT
-
-  console.log(`🧠 Analyzing trends...`)
-  const result = await analyze(toItems(messages), { prompt })
-
-  if (!result) {
-    console.log("  No meaningful trends")
-  } else {
-    const range = dateRange(messages)
-    const alert: Alert = { type: "trends", summary: result.text, dateRange: range, itemCount: result.itemCount }
-    const subs = await store.getSubscribers()
-    console.log(`📢 Sending to ${subs.length} subscribers`)
-    await broadcast(bot, subs, formatAlert(alert))
-  }
-
-  console.log("✅ Done")
-  return { messages: messages.length, sent: !!result, session: result?.session }
-}
-
-// --- Generic: topics for any source ---
-
-export interface TopicsResult {
-  messages: number
-  sent: boolean
-  session?: Session
+  return runAnalysis({ alertType: "trends", prompt, messages, store, bot })
 }
 
 export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Promise<TopicsResult> {
@@ -89,30 +103,11 @@ export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Pr
   }
 
   console.log(`🏷️ Analyzing topics [${topics.join(", ")}]...`)
-
   console.log(`📥 Fetching ${source.label} messages since ${since.toISOString()}...`)
   const messages = await source.fetchMessages(since)
   console.log(`  ${messages.length} messages`)
 
-  if (messages.length < MIN_ITEMS) {
-    console.log(`  Need ≥${MIN_ITEMS}, skipping`)
-    return { messages: messages.length, sent: false }
-  }
-
-  const result = await analyze(toItems(messages), { prompt: buildTopicsPrompt(topics) })
-
-  if (!result) {
-    console.log("  No topic data")
-  } else {
-    const range = dateRange(messages)
-    const alert: Alert = { type: "topics", summary: result.text, dateRange: range, itemCount: result.itemCount }
-    const subs = await store.getSubscribers()
-    console.log(`📢 Sending to ${subs.length} subscribers`)
-    await broadcast(bot, subs, formatAlert(alert))
-  }
-
-  console.log("✅ Done")
-  return { messages: messages.length, sent: !!result, session: result?.session }
+  return runAnalysis({ alertType: "topics", prompt: buildTopicsPrompt(topics), messages, store, bot })
 }
 
 // --- Alenka-specific: authors ---
@@ -122,73 +117,51 @@ export interface AuthorsResult {
   alerts: number
 }
 
-const COMMENTS_PER_PAGE = 10
-const START_PAGE_BUFFER = 2
-
 export async function runAuthors(opts: PipelineOpts = {}): Promise<AuthorsResult> {
   const { store, bot } = resolveOpts(opts)
 
   console.log("🔑 Auth...")
   const cookie = await alenkaAuth(store)
 
-  const page1Html = await fetchCommentPage("/comment/last/", cookie, 1)
-  const page1Comments = parseComments(page1Html)
-  if (page1Comments.length === 0) {
-    console.log("  No comments found")
-    return { comments: 0, alerts: 0 }
-  }
-  const latestId = Number(page1Comments[0].id)
-
   const lastId = await store.getLastId("authors")
 
   if (!lastId) {
-    await store.setLastId("authors", String(latestId))
-    console.log(`  Initialized lastId to ${latestId}`)
-    return { comments: 0, alerts: 0 }
-  }
-
-  const lastSeenId = Number(lastId)
-  if (latestId <= lastSeenId) {
-    console.log("  No new comments")
+    const [first] = await scrapeNewComments(cookie, { maxComments: 1 })
+    if (!first) {
+      console.log("  No comments found")
+      return { comments: 0, alerts: 0 }
+    }
+    await store.setLastId("authors", first.id)
+    console.log(`  Initialized lastId to ${first.id}`)
     return { comments: 0, alerts: 0 }
   }
 
   const tracked = await store.getTrackedAuthors()
   const subs = await store.getSubscribers()
   console.log(`👤 Tracked: ${tracked.length ? tracked.join(", ") : "none"}`)
-
-  const startPage = Math.ceil((latestId - lastSeenId) / COMMENTS_PER_PAGE) + START_PAGE_BUFFER
-  console.log(`📥 Scraping pages ${startPage}→1 (lastId=${lastId}, latest=${latestId})...`)
+  console.log(`📥 Scraping new comments (lastId=${lastId})...`)
 
   let totalComments = 0
   let totalAlerts = 0
 
-  for (let page = startPage; page >= 1; page--) {
-    const html = await fetchCommentPage("/comment/last/", cookie, page)
-    const comments = parseComments(html)
-    if (comments.length === 0) continue
+  await scrapeNewComments(cookie, {
+    lastSeenId: lastId,
+    onPage: async (comments) => {
+      const msgs = [...comments].reverse().map(toMessage)
+      totalComments += msgs.length
 
-    const fresh = comments
-      .filter((c) => Number(c.id) > lastSeenId)
-      .reverse()
+      const alerts = detectAuthorAlerts(msgs, tracked)
+      totalAlerts += alerts.length
+      for (const alert of alerts) {
+        await broadcastAlert(bot, subs, alert)
+      }
 
-    if (fresh.length === 0) continue
-    totalComments += fresh.length
+      const pageMaxId = String(Math.max(...comments.map((c) => Number(c.id))))
+      await store.setLastId("authors", pageMaxId)
 
-    const msgs = fresh.map(toMessage)
-
-    const alerts = detectAuthorAlerts(msgs, tracked)
-    totalAlerts += alerts.length
-    for (const alert of alerts) {
-      const images = alert.type === "author" ? alert.comment.images : undefined
-      await broadcast(bot, subs, formatAlert(alert), images)
-    }
-
-    const pageMaxId = String(Math.max(...fresh.map((c) => Number(c.id))))
-    await store.setLastId("authors", pageMaxId)
-
-    if (alerts.length > 0) console.log(`  page ${page}: +${alerts.length} alerts`)
-  }
+      if (alerts.length > 0) console.log(`  +${alerts.length} alerts`)
+    },
+  })
 
   console.log(`  ${totalComments} comments, ${totalAlerts} alerts total`)
   console.log("✅ Done")
@@ -221,7 +194,7 @@ export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
 
   const alerts = detectHotAlerts(msgs, seenIds)
   for (const a of alerts) {
-    if (a.type === "hot") await store.markHotSeen(a.comment.id)
+    await store.markHotSeen(a.comment.id)
   }
 
   console.log(`  ${alerts.length} hot alerts`)
@@ -229,8 +202,7 @@ export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
   if (alerts.length > 0) {
     const subs = await store.getSubscribers()
     for (const alert of alerts) {
-      const images = alert.type === "hot" ? alert.comment.images : undefined
-      await broadcast(bot, subs, formatAlert(alert), images)
+      await broadcastAlert(bot, subs, alert)
     }
   }
 
