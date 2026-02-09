@@ -35,6 +35,8 @@ export const kv = {
   token: process.env.KV_REST_API_TOKEN!,
 }
 
+export const ONE_DAY_MS = 86_400_000
+
 export const MAX_ITEMS = 2000
 export const MIN_ITEMS = 10
 

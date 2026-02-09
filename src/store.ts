@@ -19,125 +19,121 @@ export class Store {
       })
   }
 
-  private key(k: string) {
-    return k
-  }
-
   // Subscribers (shared across all sources)
   async addSubscriber(chatId: string): Promise<void> {
-    await this.redis.sadd(this.key("subscribers"), chatId)
+    await this.redis.sadd("subscribers", chatId)
   }
 
   async removeSubscriber(chatId: string): Promise<void> {
-    await this.redis.srem(this.key("subscribers"), chatId)
+    await this.redis.srem("subscribers", chatId)
   }
 
   async getSubscribers(): Promise<string[]> {
-    return this.redis.smembers(this.key("subscribers"))
+    return this.redis.smembers("subscribers")
   }
 
   // User active source (keyboard state)
   async setUserSource(chatId: string, source: string): Promise<void> {
-    await this.redis.set(this.key(`user:${chatId}:source`), source)
+    await this.redis.set(`user:${chatId}:source`, source)
   }
 
   async getUserSource(chatId: string): Promise<string | null> {
-    return this.redis.get<string>(this.key(`user:${chatId}:source`))
+    return this.redis.get<string>(`user:${chatId}:source`)
   }
 
   // Source-namespaced: telegram folder
   async getFolder(): Promise<string | null> {
-    return this.redis.get<string>(this.key("source:telegram:folder"))
+    return this.redis.get<string>("source:telegram:folder")
   }
 
   async setFolder(name: string): Promise<void> {
-    await this.redis.set(this.key("source:telegram:folder"), name)
+    await this.redis.set("source:telegram:folder", name)
   }
 
   // Source-namespaced: alenka auth cookie
   async getAuthCookie(): Promise<string | null> {
-    return this.redis.get<string>(this.key("source:alenka:cookie"))
+    return this.redis.get<string>("source:alenka:cookie")
   }
 
   async setAuthCookie(cookie: string): Promise<void> {
-    await this.redis.set(this.key("source:alenka:cookie"), cookie, { ex: 86400 })
+    await this.redis.set("source:alenka:cookie", cookie, { ex: 86400 })
   }
 
   // Source-namespaced: alenka lastId
   async getLastId(feature: "trends" | "authors"): Promise<string | null> {
-    return this.redis.get<string>(this.key(`source:alenka:${feature}:lastId`))
+    return this.redis.get<string>(`source:alenka:${feature}:lastId`)
   }
 
   async setLastId(feature: "trends" | "authors", id: string): Promise<void> {
-    await this.redis.set(this.key(`source:alenka:${feature}:lastId`), id)
+    await this.redis.set(`source:alenka:${feature}:lastId`, id)
   }
 
   // Topics (shared across all sources)
   async trackTopic(name: string): Promise<void> {
-    await this.redis.sadd(this.key("topics:tracked"), name)
+    await this.redis.sadd("topics:tracked", name)
   }
 
   async untrackTopic(name: string): Promise<void> {
-    await this.redis.srem(this.key("topics:tracked"), name)
+    await this.redis.srem("topics:tracked", name)
   }
 
   async getTrackedTopics(): Promise<string[]> {
-    return this.redis.smembers(this.key("topics:tracked"))
+    return this.redis.smembers("topics:tracked")
   }
 
   async isTrackedTopic(name: string): Promise<boolean> {
-    return (await this.redis.sismember(this.key("topics:tracked"), name)) === 1
+    return (await this.redis.sismember("topics:tracked", name)) === 1
   }
 
   // Authors (alenka-specific)
   async trackAuthor(name: string): Promise<void> {
-    await this.redis.sadd(this.key("authors:tracked"), name)
+    await this.redis.sadd("authors:tracked", name)
   }
 
   async untrackAuthor(name: string): Promise<void> {
-    await this.redis.srem(this.key("authors:tracked"), name)
+    await this.redis.srem("authors:tracked", name)
   }
 
   async getTrackedAuthors(): Promise<string[]> {
-    return this.redis.smembers(this.key("authors:tracked"))
+    return this.redis.smembers("authors:tracked")
   }
 
   async isTrackedAuthor(name: string): Promise<boolean> {
-    return (await this.redis.sismember(this.key("authors:tracked"), name)) === 1
+    return (await this.redis.sismember("authors:tracked", name)) === 1
   }
 
   // Hot comments seen (alenka-specific, 3-day TTL per comment)
   async isHotSeen(commentId: string): Promise<boolean> {
-    return (await this.redis.exists(this.key(`hot:seen:${commentId}`))) === 1
+    return (await this.redis.exists(`hot:seen:${commentId}`)) === 1
   }
 
   async markHotSeen(commentId: string): Promise<void> {
-    await this.redis.set(this.key(`hot:seen:${commentId}`), 1, { ex: 259200 })
+    await this.redis.set(`hot:seen:${commentId}`, 1, { ex: 259200 })
   }
 
   // Pending analysis (5-minute TTL)
   async setPending(chatId: string, durationMs: number): Promise<void> {
-    await this.redis.set(this.key(`user:${chatId}:pending`), durationMs, { ex: 300 })
+    await this.redis.set(`user:${chatId}:pending`, durationMs, { ex: 300 })
   }
 
   async getPending(chatId: string): Promise<number | null> {
-    return this.redis.get<number>(this.key(`user:${chatId}:pending`))
+    return this.redis.get<number>(`user:${chatId}:pending`)
   }
 
   async clearPending(chatId: string): Promise<void> {
-    await this.redis.del(this.key(`user:${chatId}:pending`))
+    await this.redis.del(`user:${chatId}:pending`)
   }
 
   // Chat session (1-hour TTL)
   async getSession(chatId: string): Promise<Session | null> {
-    return this.redis.get<Session>(this.key(`chat:session:${chatId}`))
+    return this.redis.get<Session>(`chat:session:${chatId}`)
   }
 
   async setSession(chatId: string, session: Session): Promise<void> {
-    await this.redis.set(this.key(`chat:session:${chatId}`), session, { ex: 3600 })
+    await this.redis.set(`chat:session:${chatId}`, session, { ex: 3600 })
   }
 
   async clearSession(chatId: string): Promise<void> {
-    await this.redis.del(this.key(`chat:session:${chatId}`))
+    await this.redis.del(`chat:session:${chatId}`)
   }
 }

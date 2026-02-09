@@ -1,12 +1,17 @@
 import { Store } from "./store.js"
 import { getSource } from "./sources/registry.js"
-import { alenkaAuth, detectAuthorAlerts, detectHotAlerts } from "./sources/alenka/index.js"
+import { alenkaAuth, detectAuthorAlerts, detectHotAlerts, toMessage } from "./sources/alenka/index.js"
 import { fetchCommentPage, parseComments, scrapeTopComments } from "./sources/alenka/scraper.js"
 import { analyze, TRENDS_PROMPT, buildTopicsPrompt, toItems } from "./analyzer.js"
 import type { Session } from "./store.js"
 import { createBot, formatAlert, broadcast } from "./telegram.js"
-import { telegram, MIN_ITEMS, MAX_ITEMS } from "./config.js"
+import { telegram, MIN_ITEMS, MAX_ITEMS, ONE_DAY_MS } from "./config.js"
 import type { Alert, Message } from "./types.js"
+
+function dateRange(messages: Message[]) {
+  const dates = messages.map((m) => m.date.getTime())
+  return { from: new Date(Math.min(...dates)), to: new Date(Math.max(...dates)) }
+}
 
 export interface PipelineOpts {
   store?: Store
@@ -29,7 +34,7 @@ export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Pr
   const log = opts.onLog ?? (() => {})
   const store = opts.store ?? new Store()
   const bot = createBot(opts.botToken ?? telegram.botToken)
-  const since = opts.since ?? new Date(Date.now() - 86_400_000)
+  const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
   const source = getSource(sourceName)
 
   log(`📥 Fetching ${source.label} messages since ${since.toISOString()}...`)
@@ -49,9 +54,8 @@ export async function runTrends(sourceName: string, opts: PipelineOpts = {}): Pr
   if (!result) {
     log("  No meaningful trends")
   } else {
-    const dates = messages.map((m) => m.date.getTime())
-    const dateRange = { from: new Date(Math.min(...dates)), to: new Date(Math.max(...dates)) }
-    const alert: Alert = { type: "trends", summary: result.text, dateRange, itemCount: result.itemCount }
+    const range = dateRange(messages)
+    const alert: Alert = { type: "trends", summary: result.text, dateRange: range, itemCount: result.itemCount }
     const subs = await store.getSubscribers()
     log(`📢 Sending to ${subs.length} subscribers`)
     await broadcast(bot, subs, formatAlert(alert))
@@ -73,7 +77,7 @@ export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Pr
   const log = opts.onLog ?? (() => {})
   const store = opts.store ?? new Store()
   const bot = createBot(opts.botToken ?? telegram.botToken)
-  const since = opts.since ?? new Date(Date.now() - 86_400_000)
+  const since = opts.since ?? new Date(Date.now() - ONE_DAY_MS)
   const source = getSource(sourceName)
 
   const topics = opts.extraTopics?.length ? opts.extraTopics : await store.getTrackedTopics()
@@ -98,9 +102,8 @@ export async function runTopics(sourceName: string, opts: PipelineOpts = {}): Pr
   if (!result) {
     log("  No topic data")
   } else {
-    const dates = messages.map((m) => m.date.getTime())
-    const dateRange = { from: new Date(Math.min(...dates)), to: new Date(Math.max(...dates)) }
-    const alert: Alert = { type: "topics", summary: result.text, dateRange, itemCount: result.itemCount }
+    const range = dateRange(messages)
+    const alert: Alert = { type: "topics", summary: result.text, dateRange: range, itemCount: result.itemCount }
     const subs = await store.getSubscribers()
     log(`📢 Sending to ${subs.length} subscribers`)
     await broadcast(bot, subs, formatAlert(alert))
@@ -172,21 +175,7 @@ export async function runAuthors(opts: PipelineOpts = {}): Promise<AuthorsResult
     if (fresh.length === 0) continue
     totalComments += fresh.length
 
-    // Convert to Message for alert detection
-    const msgs: Message[] = fresh.map((c) => ({
-      id: c.id,
-      chatId: c.articleUrl || "__no_group__",
-      chatTitle: c.articleTitle || "Без статьи",
-      author: c.author,
-      text: c.text,
-      date: c.date,
-      replyTo: c.replyTo,
-      likes: c.likes,
-      images: c.images,
-      articleTitle: c.articleTitle,
-      articleUrl: c.articleUrl,
-      commentUrl: c.commentUrl,
-    }))
+    const msgs = fresh.map(toMessage)
 
     const alerts = detectAuthorAlerts(msgs, tracked)
     totalAlerts += alerts.length
@@ -225,21 +214,7 @@ export async function runHot(opts: PipelineOpts = {}): Promise<HotResult> {
   const comments = await scrapeTopComments(cookie)
   log(`  ${comments.length} top comments`)
 
-  // Convert to Message[]
-  const msgs: Message[] = comments.map((c) => ({
-    id: c.id,
-    chatId: c.articleUrl || "__no_group__",
-    chatTitle: c.articleTitle || "Без статьи",
-    author: c.author,
-    text: c.text,
-    date: c.date,
-    replyTo: c.replyTo,
-    likes: c.likes,
-    images: c.images,
-    articleTitle: c.articleTitle,
-    articleUrl: c.articleUrl,
-    commentUrl: c.commentUrl,
-  }))
+  const msgs = comments.map(toMessage)
 
   const seenIds = new Set<string>()
   for (const m of msgs) {

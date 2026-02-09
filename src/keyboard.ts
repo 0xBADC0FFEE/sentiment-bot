@@ -1,18 +1,19 @@
 import { InlineKeyboard, Keyboard } from "grammy"
 import type { Source } from "./sources/types.js"
 import { getSources } from "./sources/registry.js"
+import { ONE_DAY_MS } from "./config.js"
 
 export const BTN = {
   status: "ℹ️ Статус",
   back: "◀️ Назад",
 } as const
 
-export const DEFAULT_DURATION_MS = 86_400_000
+export const DEFAULT_DURATION_MS = ONE_DAY_MS
 
 export const DURATIONS: Record<string, number> = {
-  "24h": DEFAULT_DURATION_MS,
-  "3d": 3 * DEFAULT_DURATION_MS,
-  "7d": 7 * DEFAULT_DURATION_MS,
+  "24h": ONE_DAY_MS,
+  "3d": 3 * ONE_DAY_MS,
+  "7d": 7 * ONE_DAY_MS,
 }
 
 const CAPABILITY_BUTTONS: Record<string, string> = {

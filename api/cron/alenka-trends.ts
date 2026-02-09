@@ -1,23 +1,7 @@
-import type { IncomingMessage, ServerResponse } from "node:http"
+import { withCronAuth } from "./_helpers.js"
 import { runTrends } from "../../src/pipeline.js"
+import { ONE_DAY_MS } from "../../src/config.js"
 
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  const authHeader = req.headers.authorization
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    res.statusCode = 401
-    res.end("Unauthorized")
-    return
-  }
-
-  try {
-    const since = new Date(Date.now() - 86_400_000)
-    const result = await runTrends("alenka", { since, onLog: console.log })
-    res.setHeader("Content-Type", "application/json")
-    res.end(JSON.stringify({ ok: true, ...result }))
-  } catch (e) {
-    console.error("Cron alenka-trends error:", e)
-    res.statusCode = 500
-    res.setHeader("Content-Type", "application/json")
-    res.end(JSON.stringify({ error: String(e) }))
-  }
-}
+export default withCronAuth("alenka-trends", () =>
+  runTrends("alenka", { since: new Date(Date.now() - ONE_DAY_MS), onLog: console.log }),
+)

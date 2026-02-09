@@ -2,6 +2,7 @@ import type { Source } from "../types.js"
 import type { Message } from "../../types.js"
 import { alenka, MAX_ITEMS } from "../../config.js"
 import { Store } from "../../store.js"
+import type { Comment } from "./scraper.js"
 import { login, scrapeNewComments } from "./scraper.js"
 
 export { detectAuthorAlerts } from "./authors.js"
@@ -18,7 +19,7 @@ async function auth(store: Store): Promise<string> {
 
 export { auth as alenkaAuth }
 
-function toMessage(c: import("./scraper.js").Comment): Message {
+export function toMessage(c: Comment): Message {
   return {
     id: c.id,
     chatId: c.articleUrl || "__no_group__",
