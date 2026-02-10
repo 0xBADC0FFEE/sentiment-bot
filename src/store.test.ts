@@ -69,6 +69,12 @@ describe("Store", () => {
     expect(redis.set).toHaveBeenCalledWith("source:alenka:cookie", "_identity=abc", { ex: 86400 })
   })
 
+  it("deleteAuthCookie deletes key", async () => {
+    redis.del.mockResolvedValue(1)
+    await store.deleteAuthCookie()
+    expect(redis.del).toHaveBeenCalledWith("source:alenka:cookie")
+  })
+
   it("getLastId uses namespaced key", async () => {
     redis.get.mockResolvedValue("12345")
     expect(await store.getLastId("authors")).toBe("12345")

@@ -64,6 +64,10 @@ export class Store {
     await this.redis.set("source:alenka:cookie", cookie, { ex: ONE_DAY })
   }
 
+  async deleteAuthCookie(): Promise<void> {
+    await this.redis.del("source:alenka:cookie")
+  }
+
   // Source-namespaced: alenka lastId
   async getLastId(feature: "trends" | "authors"): Promise<string | null> {
     return this.redis.get<string>(`source:alenka:${feature}:lastId`)

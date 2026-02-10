@@ -1,6 +1,14 @@
 import { describe, it, expect } from "vitest"
 import { readFileSync } from "fs"
-import { parseLikes, parseDate, parseComments } from "./scraper.js"
+import { AuthExpiredError, parseLikes, parseDate, parseComments } from "./scraper.js"
+
+describe("AuthExpiredError", () => {
+  it("is an Error with descriptive message", () => {
+    const err = new AuthExpiredError()
+    expect(err).toBeInstanceOf(Error)
+    expect(err.message).toBe("Auth cookie expired")
+  })
+})
 
 describe("parseLikes", () => {
   it("parses positive likes", () => {

@@ -2,6 +2,12 @@ import * as cheerio from "cheerio"
 
 const BASE = "https://alenka.capital"
 
+export class AuthExpiredError extends Error {
+  constructor() {
+    super("Auth cookie expired")
+  }
+}
+
 export interface Comment {
   id: string
   author: string
@@ -141,6 +147,7 @@ async function fetchCommentPage(
   const url = `${BASE}${path}${pageSuffix}`
   const res = await fetch(url, { headers: { Cookie: cookie } })
   if (!res.ok) throw new Error(`Fetch failed: ${res.status} ${url}`)
+  if (res.url.includes("/login/")) throw new AuthExpiredError()
   return res.text()
 }
 

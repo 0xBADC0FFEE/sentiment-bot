@@ -3,7 +3,7 @@ import type { Message } from "../../types.js"
 import { alenka, MAX_ITEMS } from "../../config.js"
 import type { Store } from "../../store.js"
 import type { Comment } from "./scraper.js"
-import { login, scrapeNewComments } from "./scraper.js"
+import { AuthExpiredError, login, scrapeNewComments } from "./scraper.js"
 
 export { detectAuthorAlerts } from "./authors.js"
 export { detectHotAlerts } from "./hot.js"
@@ -17,7 +17,23 @@ async function auth(store: Store): Promise<string> {
   return cookie
 }
 
-export { auth as alenkaAuth }
+export async function withAuthRetry<T>(
+  store: Store,
+  fn: (cookie: string) => Promise<T>,
+): Promise<T> {
+  const cookie = await auth(store)
+  try {
+    return await fn(cookie)
+  } catch (e) {
+    if (e instanceof AuthExpiredError) {
+      console.log("Cookie expired, re-authenticating...")
+      await store.deleteAuthCookie()
+      const fresh = await auth(store)
+      return fn(fresh)
+    }
+    throw e
+  }
+}
 
 export function toMessage(c: Comment): Message {
   return {
@@ -43,12 +59,13 @@ export function createAlenkaSource(store: Store): Source {
     capabilities: ["trends", "topics", "authors", "hot"],
 
     async fetchMessages(since: Date): Promise<Message[]> {
-      const cookie = await auth(store)
-      const comments = await scrapeNewComments(cookie, {
-        maxComments: MAX_ITEMS,
-        maxAge: since,
+      return withAuthRetry(store, async (cookie) => {
+        const comments = await scrapeNewComments(cookie, {
+          maxComments: MAX_ITEMS,
+          maxAge: since,
+        })
+        return comments.map(toMessage)
       })
-      return comments.map(toMessage)
     },
   }
 }
