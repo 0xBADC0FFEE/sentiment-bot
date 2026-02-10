@@ -81,7 +81,9 @@ async function fetchAndAnalyze(
 }
 
 export function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<PipelineResult> {
-  const prompt = opts.customPrompt ? `${opts.customPrompt}\n\nДанные:\n\n{data}` : TRENDS_PROMPT
+  const prompt = opts.customPrompt
+    ? `<task>\n${opts.customPrompt}\n</task>\n\n<data>\n{data}\n</data>`
+    : TRENDS_PROMPT
   return fetchAndAnalyze(sourceName, "trends", prompt, opts)
 }
 
