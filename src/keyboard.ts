@@ -27,6 +27,7 @@ export function startKeyboard(): Keyboard {
   const sources = getSources()
   for (const src of sources) {
     kb.text(src.label)
+    if (src.iconId) kb.icon(src.iconId)
   }
   kb.row().text(BTN.status)
   return kb.persistent().resized()

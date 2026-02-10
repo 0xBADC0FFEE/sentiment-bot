@@ -3,13 +3,13 @@ import { resolveButton } from "./keyboard.js"
 
 describe("resolveButton", () => {
   it("resolves source labels", () => {
-    const action = resolveButton("📡 TG")
+    const action = resolveButton("Telegram")
     expect(action).not.toBeNull()
     expect(action!.type).toBe("source")
   })
 
   it("resolves alenka source", () => {
-    const action = resolveButton("📡 Alenka")
+    const action = resolveButton("Alёnka")
     expect(action).not.toBeNull()
     expect(action!.type).toBe("source")
   })
@@ -36,8 +36,8 @@ describe("resolveButton", () => {
   })
 
   it("resolves back button with source name", () => {
-    expect(resolveButton("◀️ Alenka")).toEqual({ type: "back" })
-    expect(resolveButton("◀️ TG")).toEqual({ type: "back" })
+    expect(resolveButton("◀️ Alёnka")).toEqual({ type: "back" })
+    expect(resolveButton("◀️ Telegram")).toEqual({ type: "back" })
   })
 
   it("returns null for unknown text", () => {

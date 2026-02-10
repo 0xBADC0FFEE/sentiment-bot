@@ -37,13 +37,13 @@ describe("formatTrendsSummary", () => {
   })
 
   it("includes source label", () => {
-    const out = formatTrendsSummary("test", "Alenka")
+    const out = formatTrendsSummary("test", "Alёnka")
     expect(out).toContain("Обзор трендов")
-    expect(out).toContain("· Alenka")
+    expect(out).toContain("· Alёnka")
   })
 
   it("uses custom prompt as title", () => {
-    const out = formatTrendsSummary("test", "Alenka", "найди золото")
+    const out = formatTrendsSummary("test", "Alёnka", "найди золото")
     expect(out).toContain("найди золото")
     expect(out).not.toContain("Обзор трендов")
   })
@@ -106,8 +106,8 @@ describe("formatAlert", () => {
   })
 
   it("formats trends alert with source", () => {
-    const msg = formatAlert({ type: "trends", summary: "Test summary", sourceLabel: "Alenka" })
+    const msg = formatAlert({ type: "trends", summary: "Test summary", sourceLabel: "Alёnka" })
     expect(msg).toContain("Test summary")
-    expect(msg).toContain("Alenka")
+    expect(msg).toContain("Alёnka")
   })
 })

@@ -55,8 +55,9 @@ export function toMessage(c: Comment): Message {
 export function createAlenkaSource(store: Store): Source {
   return {
     name: "alenka",
-    label: "📡 Alenka",
-    displayName: "Alenka",
+    label: "Alёnka",
+    displayName: "Alёnka",
+    iconId: "5384320879444370492",
     capabilities: ["trends", "topics", "authors", "hot"],
 
     async fetchMessages(since: Date): Promise<Message[]> {

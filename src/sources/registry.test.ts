@@ -11,7 +11,7 @@ describe("registry", () => {
   it("getSource returns by name", () => {
     const source = getSource("telegram")
     expect(source.name).toBe("telegram")
-    expect(source.label).toBe("📡 TG")
+    expect(source.label).toBe("Telegram")
     expect(source.capabilities).toContain("trends")
   })
 

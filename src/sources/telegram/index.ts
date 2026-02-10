@@ -7,8 +7,9 @@ import { getFolderChats, readMessages } from "./reader.js"
 export function createTelegramSource(store: Store): Source {
   return {
     name: "telegram",
-    label: "📡 TG",
-    displayName: "TG",
+    label: "Telegram",
+    displayName: "Telegram",
+    iconId: "5810150084930702668",
     capabilities: ["trends", "topics"],
 
     async fetchMessages(since: Date): Promise<Message[]> {
