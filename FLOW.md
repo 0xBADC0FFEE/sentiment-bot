@@ -1,21 +1,70 @@
 # Bot Flow
 
-## User Roles
+## Usage
 
-| Role | Who | Can do |
-|------|-----|--------|
-| **Subscriber** | Anyone who `/start`ed | Receive alerts |
-| **Admin** | `TELEGRAM_ADMIN_ID` | Everything |
+`/start` shows the source keyboard. The interactive flow:
+
+```
+    /start
+      │
+      ▼
+┌─ source ─────────────────────────┐
+│  [ 📡 Alenka ]  [ 📡 TG ]       │
+│  [ ℹ️ Статус ] → status info     │
+└──────────────────┬───────────────┘
+                   ▼
+┌─ duration ───────────────────────┐
+│  [ 24h ]  [ 3d ]  [ 7d ]        │
+│  [ ◀️ Назад ] → back to source   │
+└──────────────────┬───────────────┘
+                   ▼
+┌─ analysis ───────────────────────┐
+│  [ 📊 Тренды ]  [ 🏷️ Топики ]   │
+│  ...or type a custom prompt      │
+└──────────────────┬───────────────┘
+                   ▼
+           Session (1h TTL)
+           follow-up → LLM reply
+```
+
+| Button | Action |
+|--------|--------|
+| 📡 Alenka / 📡 TG | Set source → show duration keyboard |
+| 24h / 3d / 7d | Set duration → show analysis picker (inline) |
+| ✍️ Авторы | Run author tracking pipeline (admin) |
+| 🔥 Горячие | Run hot comments pipeline (admin) |
+| ℹ️ Статус | Show status |
+| ◀️ Назад | Back to source selection |
+
+**State machine:**
+
+```
+[no context] ──/start──▶ [source keyboard]
+                              │
+                         source btn
+                              ↓
+                        [duration keyboard]
+                              │
+                         duration btn
+                              ↓
+                        [pending] (5min TTL)
+                         │          │
+                    inline btn   free text
+                         │          │
+                         ↓          ↓
+                   [session active] (1h TTL)
+                         │
+                    free text → follow-up
+                         │
+         any /cmd ───────┘ (clears session)
+```
 
 ---
 
 ## Commands
 
 ### `/start` (any user)
-Subscribe to alerts. Shows source keyboard:
-```
-📡 Alenka | 📡 TG | ℹ️ Статус
-```
+Subscribe to alerts. Shows source keyboard.
 
 ### `/folder <name>` (admin)
 Set/view TG folder to monitor.
@@ -45,59 +94,7 @@ Creates session for follow-up questions.
 
 ---
 
-## Interactive Flow (keyboard buttons)
-
-```
-Source selection          Duration picker         Analysis picker
-┌──────────────────┐    ┌────────────────┐    ┌──────────────────────┐
-│ 📡 Alenka        │───▶│ 24h  3d  7d    │───▶│ [📊 Тренды]          │
-│ 📡 TG            │    │                │    │ [🏷️ Топики]          │
-│ ℹ️ Статус        │    │ ◀️ Назад       │    │ ...or type prompt     │
-└──────────────────┘    └────────────────┘    └──────────────────────┘
-                                                       │
-                                                       ▼
-                                               Session (1h TTL)
-                                               └─ follow-up text ──▶ LLM reply
-```
-
-**State machine:**
-```
-[no context] ──/start──▶ [source keyboard]
-    │                         │
-    │                    source btn
-    │                         ▼
-    │                   [duration keyboard]
-    │                         │
-    │                    duration btn
-    │                         ▼
-    │                   [pending] (5min TTL)
-    │                    │          │
-    │              inline btn    free text
-    │                    │          │
-    │                    ▼          ▼
-    │              [session active] (1h TTL)
-    │                    │
-    │               free text → follow-up question
-    │                    │
-    └────── any /cmd ────┘ (clears session)
-```
-
----
-
-## Keyboard Buttons (admin only except source selection)
-
-| Button | Action |
-|--------|--------|
-| 📡 Alenka / 📡 TG | Set source → show duration keyboard |
-| 24h / 3d / 7d | Set duration → show analysis picker (inline) |
-| ✍️ Авторы | Run author tracking pipeline |
-| 🔥 Горячие | Run hot comments pipeline |
-| ℹ️ Статус | Show `/status` |
-| ◀️ Назад | Back to source selection |
-
----
-
-## Cron Jobs (automated)
+## Cron Jobs
 
 All require `Authorization: Bearer $CRON_SECRET`.
 
