@@ -8,6 +8,7 @@ export function createTelegramSource(store: Store): Source {
   return {
     name: "telegram",
     label: "📡 TG",
+    displayName: "TG",
     capabilities: ["trends", "topics"],
 
     async fetchMessages(since: Date): Promise<Message[]> {

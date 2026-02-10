@@ -44,26 +44,28 @@ export function formatHotAlert(c: Message): string {
   return formatCommentAlert("🔥", c)
 }
 
-function formatSummaryAlert(emoji: string, title: string, summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
+function formatSummaryAlert(emoji: string, title: string, summary: string, sourceLabel?: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
+  const source = sourceLabel ? ` · ${sourceLabel}` : ""
   const range = dateRange ? ` · ${shortDate(dateRange.from)}–${shortDate(dateRange.to)}` : ""
   const count = itemCount ? ` · ${itemCount} сообщ.` : ""
-  return `${emoji} <b>${title}</b>${range}${count}\n\n${esc(summary)}`
+  return `${emoji} <b>${title}</b>${source}${range}${count}\n\n${esc(summary)}`
 }
 
-export function formatTrendsSummary(summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
-  return formatSummaryAlert("📊", "Обзор трендов", summary, dateRange, itemCount)
+export function formatTrendsSummary(summary: string, sourceLabel?: string, customPrompt?: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
+  const title = customPrompt || "Обзор трендов"
+  return formatSummaryAlert("📊", title, summary, sourceLabel, dateRange, itemCount)
 }
 
-export function formatTopicsSummary(summary: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
-  return formatSummaryAlert("🏷️", "Обзор топиков", summary, dateRange, itemCount)
+export function formatTopicsSummary(summary: string, sourceLabel?: string, dateRange?: { from: Date; to: Date }, itemCount?: number): string {
+  return formatSummaryAlert("🏷️", "Обзор топиков", summary, sourceLabel, dateRange, itemCount)
 }
 
 export function formatAlert(alert: Alert): string {
   switch (alert.type) {
     case "author": return formatAuthorAlert(alert.comment)
     case "hot": return formatHotAlert(alert.comment)
-    case "trends": return formatTrendsSummary(alert.summary, alert.dateRange, alert.itemCount)
-    case "topics": return formatTopicsSummary(alert.summary, alert.dateRange, alert.itemCount)
+    case "trends": return formatTrendsSummary(alert.summary, alert.sourceLabel, alert.customPrompt, alert.dateRange, alert.itemCount)
+    case "topics": return formatTopicsSummary(alert.summary, alert.sourceLabel, alert.dateRange, alert.itemCount)
   }
 }
 

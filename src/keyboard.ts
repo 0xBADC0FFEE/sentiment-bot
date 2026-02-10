@@ -5,7 +5,7 @@ import { ONE_DAY_MS } from "./config.js"
 
 export const BTN = {
   status: "ℹ️ Статус",
-  back: "◀️ Назад",
+  backPrefix: "◀️ ",
 } as const
 
 export const DEFAULT_DURATION_MS = ONE_DAY_MS
@@ -50,7 +50,7 @@ export function sourceKeyboard(source: Source): Keyboard {
   }
   if (extraCaps.length > 0) kb.row()
 
-  kb.text(BTN.back)
+  kb.text(`${BTN.backPrefix}${source.displayName}`)
   return kb.persistent().resized()
 }
 
@@ -73,7 +73,7 @@ export type ButtonAction =
 
 export function resolveButton(text: string): ButtonAction {
   if (text === BTN.status) return { type: "status" }
-  if (text === BTN.back) return { type: "back" }
+  if (text.startsWith(BTN.backPrefix)) return { type: "back" }
 
   // Source label?
   const source = getSources().find((s) => s.label === text)

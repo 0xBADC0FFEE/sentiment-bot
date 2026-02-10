@@ -17,7 +17,7 @@ export interface Message {
 export type HotAlert = { type: "hot"; comment: Message }
 
 export type Alert =
-  | { type: "trends"; summary: string; dateRange?: { from: Date; to: Date }; itemCount?: number }
-  | { type: "topics"; summary: string; dateRange?: { from: Date; to: Date }; itemCount?: number }
+  | { type: "trends"; summary: string; sourceLabel?: string; customPrompt?: string; dateRange?: { from: Date; to: Date }; itemCount?: number }
+  | { type: "topics"; summary: string; sourceLabel?: string; dateRange?: { from: Date; to: Date }; itemCount?: number }
   | { type: "author"; comment: Message }
   | HotAlert

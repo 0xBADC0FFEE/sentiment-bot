@@ -56,6 +56,7 @@ export function createAlenkaSource(store: Store): Source {
   return {
     name: "alenka",
     label: "📡 Alenka",
+    displayName: "Alenka",
     capabilities: ["trends", "topics", "authors", "hot"],
 
     async fetchMessages(since: Date): Promise<Message[]> {

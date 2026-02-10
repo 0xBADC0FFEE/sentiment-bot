@@ -40,6 +40,8 @@ async function analyzeAndBroadcast(
   messages: Message[],
   store: Store,
   api: Api,
+  sourceLabel?: string,
+  customPrompt?: string,
 ): Promise<PipelineResult> {
   if (messages.length < MIN_ITEMS) {
     console.log(`  Need ≥${MIN_ITEMS}, skipping`)
@@ -53,7 +55,9 @@ async function analyzeAndBroadcast(
     console.log(`  No meaningful ${alertType}`)
   } else {
     const range = dateRange(messages)
-    const alert: Alert = { type: alertType, summary: result.text, dateRange: range, itemCount: result.itemCount }
+    const alert: Alert = alertType === "trends"
+      ? { type: "trends", summary: result.text, sourceLabel, customPrompt, dateRange: range, itemCount: result.itemCount }
+      : { type: "topics", summary: result.text, sourceLabel, dateRange: range, itemCount: result.itemCount }
     const subs = await store.getSubscribers()
     console.log(`📢 Sending to ${subs.length} subscribers`)
     await broadcastAlert(api, subs, alert)
@@ -77,7 +81,7 @@ async function fetchAndAnalyze(
   const messages = await source.fetchMessages(since)
   console.log(`  ${messages.length} messages`)
 
-  return analyzeAndBroadcast(alertType, prompt, messages, store, api)
+  return analyzeAndBroadcast(alertType, prompt, messages, store, api, source.displayName, opts.customPrompt)
 }
 
 export function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<PipelineResult> {

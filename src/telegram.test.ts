@@ -36,6 +36,18 @@ describe("formatTrendsSummary", () => {
     expect(out).toContain("Обзор трендов")
   })
 
+  it("includes source label", () => {
+    const out = formatTrendsSummary("test", "Alenka")
+    expect(out).toContain("Обзор трендов")
+    expect(out).toContain("· Alenka")
+  })
+
+  it("uses custom prompt as title", () => {
+    const out = formatTrendsSummary("test", "Alenka", "найди золото")
+    expect(out).toContain("найди золото")
+    expect(out).not.toContain("Обзор трендов")
+  })
+
   it("escapes HTML entities", () => {
     const out = formatTrendsSummary("<b>AT&T</b>")
     expect(out).toContain("&lt;b&gt;")
@@ -93,8 +105,9 @@ describe("formatAlert", () => {
     expect(msg).toContain("✍️")
   })
 
-  it("formats trends alert", () => {
-    const msg = formatAlert({ type: "trends", summary: "Test summary" })
+  it("formats trends alert with source", () => {
+    const msg = formatAlert({ type: "trends", summary: "Test summary", sourceLabel: "Alenka" })
     expect(msg).toContain("Test summary")
+    expect(msg).toContain("Alenka")
   })
 })

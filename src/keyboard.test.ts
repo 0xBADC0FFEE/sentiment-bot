@@ -35,9 +35,9 @@ describe("resolveButton", () => {
     expect(action).toEqual({ type: "status" })
   })
 
-  it("resolves back button", () => {
-    const action = resolveButton("◀️ Назад")
-    expect(action).toEqual({ type: "back" })
+  it("resolves back button with source name", () => {
+    expect(resolveButton("◀️ Alenka")).toEqual({ type: "back" })
+    expect(resolveButton("◀️ TG")).toEqual({ type: "back" })
   })
 
   it("returns null for unknown text", () => {
