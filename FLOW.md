@@ -14,7 +14,7 @@
 └──────────────────┬───────────────┘
                    ▼
 ┌─ duration ───────────────────────┐
-│  [ 24h ]  [ 3d ]  [ 7d ]        │
+│  [ 24h ]  [ 3d ]  [ 1w ]        │
 │  [ ◀️ Назад ] → back to source   │
 └──────────────────┬───────────────┘
                    ▼
@@ -30,7 +30,7 @@
 | Button | Action |
 |--------|--------|
 | 📡 Alenka / 📡 TG | Set source → show duration keyboard |
-| 24h / 3d / 7d | Set duration → show analysis picker (inline) |
+| 24h / 3d / 1w | Set duration → show analysis picker (inline) |
 | ✍️ Авторы | Run author tracking pipeline (admin) |
 | 🔥 Горячие | Run hot comments pipeline (admin) |
 | ℹ️ Статус | Show status |
@@ -84,11 +84,11 @@ Add/remove tracked author for comment alerts.
 ### `/status` (admin)
 Show runtime, LLM provider, sources, folder, topics/authors/subscribers count.
 
-### `/trends [24h|3d|7d] [prompt]` (admin)
+### `/trends [24h|3d|1w] [prompt]` (admin)
 Run trend analysis. Optional duration (default 24h) and custom prompt.
 Creates session for follow-up questions.
 
-### `/topics [24h|3d|7d] [topic]` (admin)
+### `/topics [24h|3d|1w] [topic]` (admin)
 Run topic analysis. Optional duration and ad-hoc topic.
 Creates session for follow-up questions.
 

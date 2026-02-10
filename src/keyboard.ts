@@ -14,7 +14,7 @@ export const DEFAULT_DURATION_MS = ONE_DAY_MS
 export const DURATIONS: Record<string, number> = {
   "24h": ONE_DAY_MS,
   "3d": 3 * ONE_DAY_MS,
-  "7d": 7 * ONE_DAY_MS,
+  "1w": 7 * ONE_DAY_MS,
 }
 
 const CAPABILITY_BUTTONS: Record<string, string> = {

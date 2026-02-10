@@ -11,7 +11,7 @@ Self-hosted investment sentiment analyzer — requires your own Alenka.Capital a
 - **Author alerts** — real-time notifications when tracked authors comment
 - **Hot comments** — alerts for high-engagement comments (15+ likes)
 - **Follow-up chat** — ask follow-up questions about analysis results (4h session, stored in Redis)
-- **Custom prompts** — `/trends 7d Что с нефтью?` sends custom question over the data
+- **Custom prompts** — `/trends 1w Что с нефтью?` sends custom question over the data
 - **Multi-provider LLM** — Anthropic, Gemini, Groq, OpenRouter via single `LLM_MODEL` env var
 - **Editable prompts** — system/trends/topics prompts live in `prompts/*.md`
 
@@ -34,7 +34,7 @@ Self-hosted investment sentiment analyzer — requires your own Alenka.Capital a
 └──────────────────┬───────────────┘
                    ▼
 ┌─ duration ───────────────────────┐
-│  [ 24h ]  [ 3d ]  [ 7d ]        │
+│  [ 24h ]  [ 3d ]  [ 1w ]        │
 │  [ ◀️ Назад ] → back to source   │
 └──────────────────┬───────────────┘
                    ▼

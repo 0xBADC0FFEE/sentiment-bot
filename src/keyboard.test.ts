@@ -17,7 +17,7 @@ describe("resolveButton", () => {
   it("resolves duration buttons", () => {
     expect(resolveButton("24h")).toEqual({ type: "analysis", durationMs: 86_400_000 })
     expect(resolveButton("3d")).toEqual({ type: "analysis", durationMs: 3 * 86_400_000 })
-    expect(resolveButton("7d")).toEqual({ type: "analysis", durationMs: 7 * 86_400_000 })
+    expect(resolveButton("1w")).toEqual({ type: "analysis", durationMs: 7 * 86_400_000 })
   })
 
   it("resolves authors button", () => {
