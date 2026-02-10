@@ -1,4 +1,4 @@
-import { Api, InputMediaBuilder } from "grammy"
+import { Api, type InlineKeyboard, InputMediaBuilder } from "grammy"
 import type { Alert, Message } from "./types.js"
 
 function esc(s: string): string {
@@ -74,6 +74,7 @@ export async function broadcast(
   chatIds: string[],
   message: string,
   images?: string[],
+  replyMarkup?: InlineKeyboard,
 ): Promise<void> {
   for (const chatId of chatIds) {
     try {
@@ -89,8 +90,12 @@ export async function broadcast(
         await api.sendMediaGroup(chatId, media)
       } else {
         const parts = splitMessage(message)
-        for (const part of parts) {
-          await api.sendMessage(chatId, part, { parse_mode: "HTML" })
+        for (let i = 0; i < parts.length; i++) {
+          const isLast = i === parts.length - 1
+          await api.sendMessage(chatId, parts[i], {
+            parse_mode: "HTML",
+            ...(isLast && replyMarkup ? { reply_markup: replyMarkup } : {}),
+          })
         }
       }
     } catch (e) {
@@ -99,9 +104,9 @@ export async function broadcast(
   }
 }
 
-export async function broadcastAlert(api: Api, subs: string[], alert: Alert): Promise<void> {
+export async function broadcastAlert(api: Api, subs: string[], alert: Alert, replyMarkup?: InlineKeyboard): Promise<void> {
   const images = alert.type === "author" || alert.type === "hot" ? alert.comment.images : undefined
-  await broadcast(api, subs, formatAlert(alert), images)
+  await broadcast(api, subs, formatAlert(alert), images, replyMarkup)
 }
 
 const TG_LIMIT = 4096

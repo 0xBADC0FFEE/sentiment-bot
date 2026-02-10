@@ -2,7 +2,7 @@ import { Store } from "./store.js"
 import { getSource } from "./sources/registry.js"
 import { analyze, TRENDS_PROMPT, buildTopicsPrompt, toItems } from "./analyzer.js"
 import type { Session } from "./store.js"
-import { Api } from "grammy"
+import { Api, type InlineKeyboard } from "grammy"
 import { broadcastAlert } from "./telegram.js"
 import { telegram, MIN_ITEMS, ONE_DAY_MS } from "./config.js"
 import type { Alert, Message } from "./types.js"
@@ -18,6 +18,7 @@ export interface PipelineOpts {
   since?: Date
   extraTopics?: string[]
   customPrompt?: string
+  replyMarkup?: InlineKeyboard
 }
 
 function defaults(opts: PipelineOpts) {
@@ -42,6 +43,7 @@ async function analyzeAndBroadcast(
   api: Api,
   sourceLabel?: string,
   customPrompt?: string,
+  replyMarkup?: InlineKeyboard,
 ): Promise<PipelineResult> {
   if (messages.length < MIN_ITEMS) {
     console.log(`  Need ≥${MIN_ITEMS}, skipping`)
@@ -60,7 +62,7 @@ async function analyzeAndBroadcast(
       : { type: "topics", summary: result.text, sourceLabel, dateRange: range, itemCount: result.itemCount }
     const subs = await store.getSubscribers()
     console.log(`📢 Sending to ${subs.length} subscribers`)
-    await broadcastAlert(api, subs, alert)
+    await broadcastAlert(api, subs, alert, replyMarkup)
   }
 
   console.log("✅ Done")
@@ -81,7 +83,7 @@ async function fetchAndAnalyze(
   const messages = await source.fetchMessages(since)
   console.log(`  ${messages.length} messages`)
 
-  return analyzeAndBroadcast(alertType, prompt, messages, store, api, source.displayName, opts.customPrompt)
+  return analyzeAndBroadcast(alertType, prompt, messages, store, api, source.displayName, opts.customPrompt, opts.replyMarkup)
 }
 
 export function runTrends(sourceName: string, opts: PipelineOpts = {}): Promise<PipelineResult> {

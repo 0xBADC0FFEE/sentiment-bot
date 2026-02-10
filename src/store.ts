@@ -10,7 +10,7 @@ export interface Session {
 const ONE_DAY = 86_400
 const THREE_DAYS = 3 * ONE_DAY
 const FIVE_MINUTES = 300
-const ONE_HOUR = 3_600
+const FOUR_HOURS = 4 * 3_600
 
 export class Store {
   private redis: Redis
@@ -124,13 +124,13 @@ export class Store {
     await this.redis.del(`user:${chatId}:pending`)
   }
 
-  // Chat session (1-hour TTL)
+  // Chat session (4-hour TTL)
   async getSession(chatId: string): Promise<Session | null> {
     return this.redis.get<Session>(`chat:session:${chatId}`)
   }
 
   async setSession(chatId: string, session: Session): Promise<void> {
-    await this.redis.set(`chat:session:${chatId}`, session, { ex: ONE_HOUR })
+    await this.redis.set(`chat:session:${chatId}`, session, { ex: FOUR_HOURS })
   }
 
   async clearSession(chatId: string): Promise<void> {

@@ -2,7 +2,7 @@ import type { Bot, Context } from "grammy"
 import ms from "ms"
 import { hostname } from "node:os"
 import type { Store, Session } from "./store.js"
-import { startKeyboard, sourceKeyboard, promptKeyboard, resolveButton, DEFAULT_DURATION_MS, type ButtonAction } from "./keyboard.js"
+import { startKeyboard, sourceKeyboard, promptKeyboard, repeatKeyboard, resolveButton, DEFAULT_DURATION_MS, REPEAT_PREFIX, type ButtonAction } from "./keyboard.js"
 import { getSources } from "./sources/registry.js"
 import { runTrends, runTopics } from "./pipeline.js"
 import { runAuthors, runHot } from "./sources/alenka/pipeline.js"
@@ -78,9 +78,10 @@ async function runAndReply(
   const chat = chatId(ctx)
   const since = new Date(Date.now() - durationMs)
   const api = ctx.api
+  const replyMarkup = repeatKeyboard(sourceName, durationMs, mode)
   const run = mode === "trends"
-    ? () => runTrends(sourceName, { store, api, since, customPrompt: custom })
-    : () => runTopics(sourceName, { store, api, since, extraTopics: custom ? [custom] : undefined })
+    ? () => runTrends(sourceName, { store, api, since, customPrompt: custom, replyMarkup })
+    : () => runTopics(sourceName, { store, api, since, extraTopics: custom ? [custom] : undefined, replyMarkup })
 
   try {
     const result = await withTyping(ctx, run)
@@ -307,6 +308,18 @@ export function registerCommands(bot: Bot, store: Store) {
   bot.on("callback_query:data", async (ctx) => {
     if (!isAdmin(ctx.from?.id)) return ctx.answerCallbackQuery()
     const data = ctx.callbackQuery.data
+
+    if (data.startsWith(REPEAT_PREFIX)) {
+      const [source, dur, mode] = data.slice(REPEAT_PREFIX.length).split(":")
+      const durationMs = parseDuration(dur)
+      if (!durationMs || (mode !== "trends" && mode !== "topics")) {
+        return ctx.answerCallbackQuery({ text: "Некорректные параметры." })
+      }
+      await ctx.answerCallbackQuery()
+      await runAndReply(ctx, store, source, durationMs, mode)
+      return
+    }
+
     if (!data.startsWith(CALLBACK_PREFIX)) return ctx.answerCallbackQuery()
 
     const chat = chatId(ctx)

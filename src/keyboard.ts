@@ -1,4 +1,5 @@
 import { InlineKeyboard, Keyboard } from "grammy"
+import ms from "ms"
 import type { Source } from "./sources/types.js"
 import { getSources } from "./sources/registry.js"
 import { ONE_DAY_MS } from "./config.js"
@@ -58,6 +59,14 @@ export function promptKeyboard(hasTopics: boolean): InlineKeyboard {
   const kb = new InlineKeyboard().text("📊 Тренды", "prompt:trends")
   if (hasTopics) kb.text("🏷️ Топики", "prompt:topics")
   return kb
+}
+
+// --- Inline repeat button ---
+
+export const REPEAT_PREFIX = "repeat:"
+
+export function repeatKeyboard(source: string, durationMs: number, mode: "trends" | "topics"): InlineKeyboard {
+  return new InlineKeyboard().text("🔄 Повторить", `${REPEAT_PREFIX}${source}:${ms(durationMs)}:${mode}`)
 }
 
 // --- Button label → action resolution ---

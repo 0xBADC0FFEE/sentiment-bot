@@ -23,7 +23,7 @@
 │  ...or type a custom prompt      │
 └──────────────────┬───────────────┘
                    ▼
-           Session (1h TTL)
+           Session (4h TTL)
            follow-up → LLM reply
 ```
 
@@ -52,7 +52,7 @@
                     inline btn   free text
                          │          │
                          ↓          ↓
-                   [session active] (1h TTL)
+                   [session active] (4h TTL)
                          │
                     free text → follow-up
                          │
@@ -146,7 +146,7 @@ Same format, deduplicated via `hot:seen:{id}` (3d TTL).
 | `subscribers` | set | — | Subscribed chat IDs |
 | `user:{id}:source` | string | — | Selected source |
 | `user:{id}:pending` | number | 5min | Pending analysis duration |
-| `chat:session:{id}` | JSON | 1h | LLM conversation context |
+| `chat:session:{id}` | JSON | 4h | LLM conversation context |
 | `topics:tracked` | set | — | Tracked topics |
 | `authors:tracked` | set | — | Tracked authors |
 | `hot:seen:{commentId}` | flag | 3d | Dedup hot comments |

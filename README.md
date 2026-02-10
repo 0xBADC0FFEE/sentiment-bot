@@ -10,7 +10,7 @@ Self-hosted investment sentiment analyzer — requires your own Alenka.Capital a
 - **Topics** — targeted analysis of tracked topics (e.g. "Газпром", "ставка ЦБ")
 - **Author alerts** — real-time notifications when tracked authors comment
 - **Hot comments** — alerts for high-engagement comments (15+ likes)
-- **Follow-up chat** — ask follow-up questions about analysis results (1h session, stored in Redis)
+- **Follow-up chat** — ask follow-up questions about analysis results (4h session, stored in Redis)
 - **Custom prompts** — `/trends 7d Что с нефтью?` sends custom question over the data
 - **Multi-provider LLM** — Anthropic, Gemini, Groq, OpenRouter via single `LLM_MODEL` env var
 - **Editable prompts** — system/trends/topics prompts live in `prompts/*.md`
@@ -43,8 +43,9 @@ Self-hosted investment sentiment analyzer — requires your own Alenka.Capital a
 │  ...or type a custom prompt      │
 └──────────────────┬───────────────┘
                    ▼
-           Session (1h TTL)
+           Session (4h TTL)
            follow-up → LLM reply
+           [ 🔄 Повторить ] → re-run
 ```
 
 ## Quick Start
@@ -118,7 +119,7 @@ PROD_WEBHOOK_URL=           # Restored after dev:bot exits
 | `/folder <name>` | Set Telegram folder to monitor |
 | `/status` | Show bot status |
 
-After `/trends` or `/topics`, send free text to ask follow-up questions in the same context. Any command or button resets the session.
+After `/trends` or `/topics`, send free text to ask follow-up questions (4h session). Inline 🔄 button re-runs the same analysis. Any command or button resets the session.
 
 ## LLM Providers
 
