@@ -2,7 +2,7 @@
 
 [Русская версия](README.ru.md)
 
-Multi-source investment sentiment analyzer. Scrapes [Alenka.Capital](https://alenka.capital) comments and monitors Telegram folders, then uses LLM to detect trends, analyze topics, and alert on tracked authors. Runs as a Telegram bot on Vercel serverless.
+Self-hosted investment sentiment analyzer — requires your own Alenka.Capital and Telegram credentials. Scrapes comments and monitors Telegram folders, then uses LLM to detect trends, analyze topics, and alert on tracked authors. Analyzes one source at a time: user picks source → duration → analysis type via interactive keyboard. Runs as a Telegram bot on Vercel serverless.
 
 ## Features
 
@@ -22,14 +22,46 @@ Multi-source investment sentiment analyzer. Scrapes [Alenka.Capital](https://ale
 | Alenka.Capital | Article comments via scraping | trends, topics, authors, hot |
 | Telegram | Messages from monitored folder via MTProto | trends, topics |
 
+## [Bot Flow](FLOW.md)
+
+```
+    /start
+      │
+      ▼
+┌─ source ─────────────────────────┐
+│  [ 📡 Alenka ]  [ 📡 TG ]       │
+│  [ ℹ️ Статус ] → status info     │
+└──────────────────┬───────────────┘
+                   ▼
+┌─ duration ───────────────────────┐
+│  [ 24h ]  [ 3d ]  [ 7d ]        │
+│  [ ◀️ Назад ] → back to source   │
+└──────────────────┬───────────────┘
+                   ▼
+┌─ analysis ───────────────────────┐
+│  [ 📊 Тренды ]  [ 🏷️ Топики ]   │
+│  ...or type a custom prompt      │
+└──────────────────┬───────────────┘
+                   ▼
+           Session (1h TTL)
+           follow-up → LLM reply
+```
+
 ## Quick Start
+
+1. **Bot token** — chat [@BotFather](https://t.me/BotFather), `/newbot`, copy token → `TELEGRAM_BOT_TOKEN`
+2. **Admin ID** — forward any message to [@userinfobot](https://t.me/userinfobot), copy ID → `TELEGRAM_ADMIN_ID`
+3. **MTProto keys** — [my.telegram.org](https://my.telegram.org) → API Development Tools → create app → `TG_API_ID` + `TG_API_HASH`
+4. **Setup & auth:**
 
 ```bash
 cp .env.example .env
-# Fill in required env vars (see below)
+# Fill in tokens from steps 1-3
 
 npm install
-npm run dev:bot    # Local polling mode
+npm run auth          # QR code (recommended) or phone+OTP login
+                      # Copy output → TG_SESSION in .env
+npm run dev:bot       # Local polling mode
 ```
 
 ### Deploy to Vercel
@@ -94,8 +126,6 @@ After `/trends` or `/topics`, send free text to ask follow-up questions in the s
 | `gemini://gemini-2.5-flash` | 1M | Free tier available |
 | `groq://llama-3.3-70b-versatile` | 128k | Fast inference |
 | `openrouter://deepseek/deepseek-r1-0528:free` | 164k | Free |
-
-## [Bot Flow](FLOW.md)
 
 ## Project Structure
 
