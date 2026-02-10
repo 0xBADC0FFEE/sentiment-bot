@@ -68,11 +68,13 @@ npm run dev:bot       # Локальный polling-режим
 
 Push в `main` — Vercel деплоит автоматически. Переменные окружения задать в настройках проекта.
 
-Крон-задачи (в `vercel.json`):
+Крон-задачи:
 - `/api/cron/alenka-trends` — ежедневные тренды
 - `/api/cron/telegram-trends` — ежедневные тренды
 - `/api/cron/alenka-authors` — каждые 1-2 часа
 - `/api/cron/alenka-hot` — каждые 30м-1ч
+
+Бесплатная альтернатива: [cron-job.org](https://cron-job.org) — добавить каждый URL с заголовком `Authorization: Bearer $CRON_SECRET`.
 
 ## Переменные окружения
 
@@ -144,6 +146,7 @@ src/
     alenka/             Скрейпер, детекция алертов авторов/горячих
     telegram/           MTProto клиент, чтение папок
 prompts/                Редактируемые промпты (system.md, trends.md, topics.md)
+scripts/                Утилиты (set-webhook.ts, dump-prompt.ts)
 ```
 
 ## Разработка
@@ -155,6 +158,8 @@ npm run auth         # Сгенерировать строку сессии Tele
 npm run webhook      # Восстановить webhook URL
 npm test             # Запуск тестов
 npm run test:watch   # Watch-режим
+npm run typecheck    # Проверка типов без компиляции
+npm run dump         # Дамп собранного LLM-промпта для отладки
 ```
 
 ## Решение проблем

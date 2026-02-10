@@ -68,11 +68,13 @@ npm run dev:bot       # Local polling mode
 
 Push to `main` — Vercel auto-deploys. Set env vars in project settings.
 
-Cron jobs (in `vercel.json`):
+Cron jobs:
 - `/api/cron/alenka-trends` — daily trends
 - `/api/cron/telegram-trends` — daily trends
 - `/api/cron/alenka-authors` — every 1-2h
 - `/api/cron/alenka-hot` — every 30m-1h
+
+Free alternative: [cron-job.org](https://cron-job.org) — add each URL with header `Authorization: Bearer $CRON_SECRET`.
 
 ## Environment Variables
 
@@ -144,6 +146,7 @@ src/
     alenka/             Scraper, author/hot alert detection
     telegram/           MTProto client, folder reader
 prompts/                Editable LLM prompts (system.md, trends.md, topics.md)
+scripts/                Utility scripts (set-webhook.ts, dump-prompt.ts)
 ```
 
 ## Development
@@ -155,6 +158,8 @@ npm run auth         # Generate Telegram session string
 npm run webhook      # Restore webhook URL
 npm test             # Run tests
 npm run test:watch   # Watch mode
+npm run typecheck    # Type-check without emitting
+npm run dump         # Dump assembled LLM prompt for debugging
 ```
 
 ## Troubleshooting
