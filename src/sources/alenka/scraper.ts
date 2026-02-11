@@ -22,7 +22,9 @@ export interface Comment {
   images?: string[]
 }
 
-export async function login(username: string, password: string): Promise<string> {
+const LOGIN_RETRIES = 3
+
+async function doLogin(username: string, password: string): Promise<string> {
   const getRes = await fetch(`${BASE}/login/`, { redirect: "manual" })
   const getSetCookies = getRes.headers.getSetCookie()
   const html = await getRes.text()
@@ -47,9 +49,22 @@ export async function login(username: string, password: string): Promise<string>
   })
 
   const postSetCookies = res.headers.getSetCookie()
+  console.log(`Login POST: status=${res.status}, Set-Cookie count=${postSetCookies.length}`)
   const identityCookie = postSetCookies.find(c => c.startsWith("_identity="))
   if (!identityCookie) throw new Error("Login failed: no _identity cookie")
   return identityCookie.split(";")[0]
+}
+
+export async function login(username: string, password: string): Promise<string> {
+  for (let attempt = 1; attempt <= LOGIN_RETRIES; attempt++) {
+    try {
+      return await doLogin(username, password)
+    } catch (e) {
+      console.warn(`Login attempt ${attempt}/${LOGIN_RETRIES} failed:`, e)
+      if (attempt < LOGIN_RETRIES) await new Promise(r => setTimeout(r, attempt * 1000))
+    }
+  }
+  throw new Error(`Login failed after ${LOGIN_RETRIES} attempts`)
 }
 
 export function parseLikes(text: string): number {

@@ -21,7 +21,13 @@ export async function withAuthRetry<T>(
   store: Store,
   fn: (cookie: string) => Promise<T>,
 ): Promise<T> {
-  const cookie = await auth(store)
+  let cookie: string
+  try {
+    cookie = await auth(store)
+  } catch {
+    await store.deleteAuthCookie()
+    cookie = await auth(store)
+  }
   try {
     return await fn(cookie)
   } catch (e) {
