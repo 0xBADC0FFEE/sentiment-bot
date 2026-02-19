@@ -26,8 +26,8 @@ export const telegram = {
 }
 
 export const alenka = {
-  login: process.env.ALENKA_LOGIN!,
-  password: process.env.ALENKA_PASSWORD!,
+  login: process.env.ALENKA_LOGIN!.trim(),
+  password: process.env.ALENKA_PASSWORD!.trim(),
 }
 
 export const kv = {
