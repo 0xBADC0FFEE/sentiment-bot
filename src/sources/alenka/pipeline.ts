@@ -49,23 +49,22 @@ export async function runAuthors(opts: AlenkaOpts = {}): Promise<AuthorsResult> 
 
     await scrapeNewComments(cookie, {
       lastSeenId: lastId,
-      onPage: async (comments) => {
+      async onPage(comments) {
         const msgs = [...comments].reverse().map(toMessage)
-        totalComments += msgs.length
-
         const alerts = detectAuthorAlerts(msgs, tracked)
-        totalAlerts += alerts.length
         for (const alert of alerts) {
           await broadcastAlert(api, subs, alert)
         }
 
-        const pageMaxId = String(Math.max(...comments.map((c) => Number(c.id))))
-        await store.setLastId("authors", pageMaxId)
+        const maxId = String(Math.max(...comments.map((c) => Number(c.id))))
+        await store.setLastId("authors", maxId)
 
-        if (alerts.length > 0) console.log(`  +${alerts.length} alerts`)
+        totalComments += msgs.length
+        totalAlerts += alerts.length
       },
     })
 
+    if (totalAlerts > 0) console.log(`  +${totalAlerts} alerts`)
     console.log(`  ${totalComments} comments, ${totalAlerts} alerts total`)
     console.log("Done")
     return { comments: totalComments, alerts: totalAlerts }
