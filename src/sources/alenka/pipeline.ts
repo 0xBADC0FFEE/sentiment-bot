@@ -44,31 +44,23 @@ export async function runAuthors(opts: AlenkaOpts = {}): Promise<AuthorsResult> 
     console.log(`Tracked: ${tracked.length ? tracked.join(", ") : "none"}`)
     console.log(`Scraping new comments (lastId=${lastId})...`)
 
-    let totalComments = 0
-    let totalAlerts = 0
+    const allComments = await scrapeNewComments(cookie, { lastSeenId: lastId })
+    const msgs = [...allComments].reverse().map(toMessage)
 
-    await scrapeNewComments(cookie, {
-      lastSeenId: lastId,
-      onPage: async (comments) => {
-        const msgs = [...comments].reverse().map(toMessage)
-        totalComments += msgs.length
+    const alerts = detectAuthorAlerts(msgs, tracked)
+    for (const alert of alerts) {
+      await broadcastAlert(api, subs, alert)
+    }
 
-        const alerts = detectAuthorAlerts(msgs, tracked)
-        totalAlerts += alerts.length
-        for (const alert of alerts) {
-          await broadcastAlert(api, subs, alert)
-        }
+    if (allComments.length > 0) {
+      const maxId = String(Math.max(...allComments.map((c) => Number(c.id))))
+      await store.setLastId("authors", maxId)
+    }
 
-        const pageMaxId = String(Math.max(...comments.map((c) => Number(c.id))))
-        await store.setLastId("authors", pageMaxId)
-
-        if (alerts.length > 0) console.log(`  +${alerts.length} alerts`)
-      },
-    })
-
-    console.log(`  ${totalComments} comments, ${totalAlerts} alerts total`)
+    if (alerts.length > 0) console.log(`  +${alerts.length} alerts`)
+    console.log(`  ${msgs.length} comments, ${alerts.length} alerts total`)
     console.log("Done")
-    return { comments: totalComments, alerts: totalAlerts }
+    return { comments: msgs.length, alerts: alerts.length }
   })
 }
 
