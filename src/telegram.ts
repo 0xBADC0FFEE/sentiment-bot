@@ -5,6 +5,8 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
+const TG_LIMIT = 4096
+
 function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max) + "…" : s
 }
@@ -29,11 +31,11 @@ function formatCommentAlert(emoji: string, c: Message): string {
   const link = c.commentUrl && c.articleTitle
     ? `<a href="${c.commentUrl}">${esc(c.articleTitle)}</a>`
     : ""
-  return `${emoji} <b>${esc(c.author)}</b>${reply} · ${formatDateShort(c.date)}${likes}
-
-"${esc(truncate(c.text, 200))}"
-
-${link}`
+  const header = `${emoji} <b>${esc(c.author)}</b>${reply} · ${formatDateShort(c.date)}${likes}`
+  const shell = `${header}\n\n\n\n${link}`
+  const maxText = TG_LIMIT - shell.length
+  const text = esc(truncate(c.text, maxText))
+  return `${header}\n\n${text}\n\n${link}`
 }
 
 export function formatAuthorAlert(c: Message): string {
@@ -108,8 +110,6 @@ export async function broadcastAlert(api: Api, subs: string[], alert: Alert, rep
   const images = alert.type === "author" || alert.type === "hot" ? alert.comment.images : undefined
   await broadcast(api, subs, formatAlert(alert), images, replyMarkup)
 }
-
-const TG_LIMIT = 4096
 
 export function splitMessage(text: string): string[] {
   if (text.length <= TG_LIMIT) return [text]
