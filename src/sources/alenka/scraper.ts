@@ -178,7 +178,10 @@ export async function scrapeNewComments(
   opts: ScrapeOpts = {},
 ): Promise<Comment[]> {
   const { lastSeenId, maxComments, maxAge, onPage } = opts
-  const all: Comment[] = []
+
+  // Phase 1: fetch all pages (site returns newest-first)
+  const pages: Comment[][] = []
+  let total = 0
 
   for (let page = 1; ; page++) {
     const html = await fetchCommentPage("/comment/last/", cookie, page)
@@ -197,18 +200,25 @@ export async function scrapeNewComments(
         break
       }
       pageComments.push(c)
-      if (maxComments && all.length + pageComments.length >= maxComments) {
+      if (maxComments && total + pageComments.length >= maxComments) {
         foundCutoff = true
         break
       }
     }
 
-    all.push(...pageComments)
-    if (onPage && pageComments.length > 0) await onPage(pageComments)
+    total += pageComments.length
+    if (pageComments.length > 0) pages.push(pageComments)
     if (foundCutoff) break
   }
 
-  return all
+  // Phase 2: emit pages oldest-first
+  if (onPage) {
+    for (let i = pages.length - 1; i >= 0; i--) {
+      await onPage(pages[i])
+    }
+  }
+
+  return pages.flat()
 }
 
 function parseLastPage(html: string): number {
