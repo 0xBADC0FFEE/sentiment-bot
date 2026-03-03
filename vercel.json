@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "[ \"$VERCEL_GIT_COMMIT_REF\" != main ]",
   "functions": {
     "api/bot.ts": { "memory": 1024, "maxDuration": 300, "includeFiles": "prompts/**" },
     "api/cron/telegram-trends.ts": { "memory": 1024, "includeFiles": "prompts/**" },
