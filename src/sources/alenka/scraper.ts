@@ -173,52 +173,85 @@ export interface ScrapeOpts {
   onPage?: (comments: Comment[]) => Promise<void>
 }
 
+const COMMENTS_PER_PAGE = 10
+const PAGE_BUFFER = 2
+
 export async function scrapeNewComments(
   cookie: string,
   opts: ScrapeOpts = {},
 ): Promise<Comment[]> {
   const { lastSeenId, maxComments, maxAge, onPage } = opts
+  const htmlCache = new Map<number, string>()
 
-  // Phase 1: fetch all pages (site returns newest-first)
-  const pages: Comment[][] = []
+  const fetchPage = async (page: number) => {
+    let html = htmlCache.get(page)
+    if (!html) {
+      html = await fetchCommentPage("/comment/last/", cookie, page)
+      htmlCache.set(page, html)
+    }
+    return html
+  }
+
+  // Fetch page 1: latest ID + total pages
+  const page1Html = await fetchPage(1)
+  const page1Comments = parseComments(page1Html)
+  if (page1Comments.length === 0) return []
+
+  const latestId = Number(page1Comments[0].id)
+  if (lastSeenId && latestId <= Number(lastSeenId)) return []
+
+  const totalPages = parseLastPage(page1Html)
+
+  // Estimate start page from ID gap
+  let startPage: number
+  if (lastSeenId) {
+    const gap = latestId - Number(lastSeenId)
+    startPage = Math.min(
+      Math.ceil(gap / COMMENTS_PER_PAGE) + PAGE_BUFFER,
+      totalPages,
+    )
+  } else {
+    startPage = 1
+  }
+
+  // Undershoot safety: extend if startPage has no cutoff
+  if (lastSeenId) {
+    for (let retries = 0; retries < PAGE_BUFFER && startPage < totalPages; retries++) {
+      const html = await fetchPage(startPage)
+      const comments = parseComments(html)
+      if (comments.some(c => Number(c.id) <= Number(lastSeenId))) break
+      startPage++
+    }
+  }
+
+  // Stream pages oldest→newest (startPage → 1)
+  const all: Comment[] = []
   let total = 0
 
-  for (let page = 1; ; page++) {
-    const html = await fetchCommentPage("/comment/last/", cookie, page)
-    const comments = parseComments(html)
-    if (comments.length === 0) break
+  for (let page = startPage; page >= 1; page--) {
+    const html = await fetchPage(page)
+    let comments = parseComments(html)
 
-    const pageComments: Comment[] = []
-    let foundCutoff = false
-    for (const c of comments) {
-      if (lastSeenId && Number(c.id) <= Number(lastSeenId)) {
-        foundCutoff = true
-        break
-      }
-      if (maxAge && c.date < maxAge) {
-        foundCutoff = true
-        break
-      }
-      pageComments.push(c)
-      if (maxComments && total + pageComments.length >= maxComments) {
-        foundCutoff = true
-        break
-      }
+    if (lastSeenId) {
+      comments = comments.filter(c => Number(c.id) > Number(lastSeenId))
+    }
+    if (maxAge) {
+      comments = comments.filter(c => c.date >= maxAge)
+    }
+    if (maxComments && total + comments.length > maxComments) {
+      comments = comments.slice(0, maxComments - total)
     }
 
-    total += pageComments.length
-    if (pageComments.length > 0) pages.push(pageComments)
-    if (foundCutoff) break
-  }
-
-  // Phase 2: emit pages oldest-first
-  if (onPage) {
-    for (let i = pages.length - 1; i >= 0; i--) {
-      await onPage(pages[i])
+    if (comments.length > 0) {
+      if (onPage) await onPage(comments)
+      all.push(...comments)
+      total += comments.length
     }
+
+    if (maxComments && total >= maxComments) break
   }
 
-  return pages.flat()
+  return all
 }
 
 function parseLastPage(html: string): number {
