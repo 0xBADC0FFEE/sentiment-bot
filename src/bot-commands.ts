@@ -96,9 +96,13 @@ async function runAndReply(
   }
 }
 
+const AUTHORS_PAGE = 10
+
 function handleAuthors(ctx: Context, store: Store) {
-  return execWithReply(ctx, "Authors", () => runAuthors({ store, api: ctx.api }),
-    (r) => `✅ ${r.comments} комментариев, ${r.alerts} алертов.`)
+  return execWithReply(ctx, "Authors", () => runAuthors({ store, api: ctx.api, maxAlerts: AUTHORS_PAGE }),
+    (r) => r.alerts >= AUTHORS_PAGE
+      ? `✅ ${r.alerts} алертов. Нажмите ещё раз для следующих.`
+      : `✅ ${r.comments} комментариев, ${r.alerts} алертов.`)
 }
 
 function handleHot(ctx: Context, store: Store) {

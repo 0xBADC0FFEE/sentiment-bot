@@ -8,6 +8,7 @@ import { scrapeNewComments, scrapeTopComments } from "./scraper.js"
 export interface AlenkaOpts {
   store?: Store
   api?: Api
+  maxAlerts?: number
 }
 
 function defaults(opts: AlenkaOpts) {
@@ -47,20 +48,32 @@ export async function runAuthors(opts: AlenkaOpts = {}): Promise<AuthorsResult> 
     let totalComments = 0
     let totalAlerts = 0
 
+    const { maxAlerts } = opts
+
     await scrapeNewComments(cookie, {
       lastSeenId: lastId,
       async onPage(comments) {
         const msgs = [...comments].reverse().map(toMessage)
-        const alerts = detectAuthorAlerts(msgs, tracked)
+        let alerts = detectAuthorAlerts(msgs, tracked)
+
+        const remaining = maxAlerts != null ? maxAlerts - totalAlerts : Infinity
+        const limited = maxAlerts != null && alerts.length >= remaining
+        if (limited) alerts = alerts.slice(0, remaining)
+
         for (const alert of alerts) {
           await broadcastAlert(api, subs, alert)
         }
 
-        const maxId = String(Math.max(...comments.map((c) => Number(c.id))))
-        await store.setLastId("authors", maxId)
+        const lastAlert = limited ? alerts[alerts.length - 1] : undefined
+        const lastAlertId = lastAlert && "comment" in lastAlert
+          ? lastAlert.comment.id
+          : String(Math.max(...comments.map((c) => Number(c.id))))
+        await store.setLastId("authors", lastAlertId)
 
         totalComments += msgs.length
         totalAlerts += alerts.length
+
+        if (limited) return false
       },
     })
 

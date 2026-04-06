@@ -170,7 +170,7 @@ export interface ScrapeOpts {
   lastSeenId?: string | number
   maxComments?: number
   maxAge?: Date
-  onPage?: (comments: Comment[]) => Promise<void>
+  onPage?: (comments: Comment[]) => Promise<void | false>
 }
 
 const COMMENTS_PER_PAGE = 10
@@ -243,7 +243,11 @@ export async function scrapeNewComments(
     }
 
     if (comments.length > 0) {
-      if (onPage) await onPage(comments)
+      if (onPage && (await onPage(comments)) === false) {
+        all.push(...comments)
+        total += comments.length
+        break
+      }
       all.push(...comments)
       total += comments.length
     }
