@@ -14,3 +14,17 @@ Push to `main` → Vercel auto-deploys.
 2. If `url` empty → webhook was cleared. Likely cause: `npm run dev:bot` calls `bot.start()` which deletes webhook for polling mode.
 3. Fix: `curl "https://api.telegram.org/bot$TOKEN/setWebhook?url=$PROD_WEBHOOK_URL"`
 4. `dev.ts` has auto-restore on Ctrl+C, but force-kill (kill -9) will skip it.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub (`0xBADC0FFEE/sentiment-bot`); skills use the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical defaults (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` and `docs/adr/` at repo root, created lazily by `/grill-with-docs`. See `docs/agents/domain.md`.
