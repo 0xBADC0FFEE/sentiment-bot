@@ -10,7 +10,7 @@ export function createTelegramSource(store: Store): Source {
     label: "Telegram",
     displayName: "Telegram",
     iconId: "5810150084930702668",
-    capabilities: ["trends", "topics"],
+    capabilities: ["trends", "topics", "authors"],
 
     async fetchMessages(since: Date): Promise<Message[]> {
       const folderName = await store.getFolder()

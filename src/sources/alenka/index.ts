@@ -52,9 +52,8 @@ export function toMessage(c: Comment): Message {
     replyTo: c.replyTo,
     likes: c.likes,
     images: c.images,
-    articleTitle: c.articleTitle,
-    articleUrl: c.articleUrl,
-    commentUrl: c.commentUrl,
+    linkTitle: c.articleTitle,
+    linkUrl: c.commentUrl,
   }
 }
 

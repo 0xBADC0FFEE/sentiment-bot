@@ -41,7 +41,7 @@ export async function runAuthors(opts: AlenkaOpts = {}): Promise<AuthorsResult> 
       return { comments: 0, alerts: 0 }
     }
 
-    const [tracked, subs] = await Promise.all([store.getTrackedAuthors(), store.getSubscribers()])
+    const [tracked, subs] = await Promise.all([store.getTrackedAuthors("alenka"), store.getSubscribers()])
     console.log(`Tracked: ${tracked.length ? tracked.join(", ") : "none"}`)
     console.log(`Scraping new comments (lastId=${lastId})...`)
 

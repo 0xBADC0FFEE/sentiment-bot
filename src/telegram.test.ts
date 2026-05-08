@@ -59,10 +59,9 @@ describe("formatTrendsSummary", () => {
 const comment: Message = {
   id: "123", author: "Элвис Марламов",
   chatId: "c1", chatTitle: "Test",
-  text: "Эффект золота", articleTitle: "Предложи новость!",
-  articleUrl: "https://alenka.capital/a/1",
+  text: "Эффект золота", linkTitle: "Предложи новость!",
   date: new Date(), likes: 5,
-  commentUrl: "https://alenka.capital/a/1?comm_find=123",
+  linkUrl: "https://alenka.capital/a/1?comm_find=123",
   images: ["https://cdn.alenka.capital/abc.png"],
 }
 

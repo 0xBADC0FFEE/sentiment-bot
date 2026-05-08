@@ -93,10 +93,71 @@ describe("Store", () => {
     expect(redis.sadd).toHaveBeenCalledWith("topics:tracked", "SBER")
   })
 
-  it("trackAuthor adds to set", async () => {
+  it("trackAuthor writes to per-source key", async () => {
     redis.sadd.mockResolvedValue(1)
-    await store.trackAuthor("elvis")
-    expect(redis.sadd).toHaveBeenCalledWith("authors:tracked", "elvis")
+    await store.trackAuthor("alenka", "elvis")
+    expect(redis.sadd).toHaveBeenCalledWith("authors:tracked:alenka", "elvis")
+  })
+
+  it("tracked authors are isolated per source", async () => {
+    redis.sadd.mockResolvedValue(1)
+    await store.trackAuthor("alenka", "x")
+    await store.trackAuthor("telegram", "y")
+    expect(redis.sadd).toHaveBeenCalledWith("authors:tracked:alenka", "x")
+    expect(redis.sadd).toHaveBeenCalledWith("authors:tracked:telegram", "y")
+  })
+
+  it("getTrackedAuthors reads per-source key", async () => {
+    redis.smembers.mockResolvedValue(["a"])
+    await store.getTrackedAuthors("telegram")
+    expect(redis.smembers).toHaveBeenCalledWith("authors:tracked:telegram")
+  })
+
+  it("untrackAuthor removes from per-source key", async () => {
+    redis.srem.mockResolvedValue(1)
+    await store.untrackAuthor("telegram", "x")
+    expect(redis.srem).toHaveBeenCalledWith("authors:tracked:telegram", "x")
+  })
+
+  it("isTrackedAuthor checks per-source key", async () => {
+    redis.sismember.mockResolvedValue(1)
+    expect(await store.isTrackedAuthor("alenka", "elvis")).toBe(true)
+    expect(redis.sismember).toHaveBeenCalledWith("authors:tracked:alenka", "elvis")
+  })
+
+  it("setResolvedTgUser writes per-username key with 7d TTL and string-serialized ids", async () => {
+    redis.set.mockResolvedValue("OK")
+    await store.setResolvedTgUser("durov", { userId: "1", accessHash: "-2245008065968966897" })
+    expect(redis.set).toHaveBeenCalledWith(
+      "source:telegram:authors:resolved:durov",
+      { userId: "1", accessHash: "-2245008065968966897" },
+      { ex: 604800 },
+    )
+  })
+
+  it("getResolvedTgUser reads per-username key", async () => {
+    redis.get.mockResolvedValue({ userId: "1", accessHash: "2" })
+    const result = await store.getResolvedTgUser("durov")
+    expect(redis.get).toHaveBeenCalledWith("source:telegram:authors:resolved:durov")
+    expect(result).toEqual({ userId: "1", accessHash: "2" })
+  })
+
+  it("deleteResolvedTgUser deletes per-username key", async () => {
+    redis.del.mockResolvedValue(1)
+    await store.deleteResolvedTgUser("durov")
+    expect(redis.del).toHaveBeenCalledWith("source:telegram:authors:resolved:durov")
+  })
+
+  it("getTgAuthorsLastTs reads source:telegram:authors:lastTs", async () => {
+    redis.get.mockResolvedValue(1730000000)
+    expect(await store.getTgAuthorsLastTs()).toBe(1730000000)
+    expect(redis.get).toHaveBeenCalledWith("source:telegram:authors:lastTs")
+  })
+
+  it("setTgAuthorsLastTs stores unix seconds", async () => {
+    redis.set.mockResolvedValue("OK")
+    await store.setTgAuthorsLastTs(1730000000)
+    expect(redis.set).toHaveBeenCalledWith("source:telegram:authors:lastTs", 1730000000)
   })
 
   it("isHotSeen checks existence", async () => {

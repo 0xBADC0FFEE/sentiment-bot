@@ -1,6 +1,7 @@
 import { TelegramClient } from "telegram"
 import { Api } from "telegram/tl/index.js"
 import type { Message } from "../../types.js"
+import { buildMessageLink } from "./link.js"
 
 const MAX_REACTIONS = 3
 
@@ -56,6 +57,7 @@ async function readChat(
     ("title" in entity ? entity.title : undefined) ??
     ("firstName" in entity ? entity.firstName : undefined) ??
     chatId
+  const chatUsername = "username" in entity ? entity.username ?? undefined : undefined
 
   if ("bot" in entity && entity.bot) {
     log(`  ${chatTitle}: skipped (bot)`)
@@ -90,6 +92,8 @@ async function readChat(
         text: msg.message,
         date: new Date(msg.date * 1000),
         reactions: extractReactions(msg),
+        linkTitle: chatTitle,
+        linkUrl: buildMessageLink(chatId, msg.id, chatUsername),
       })
       const replyToMsgId = msg.replyTo instanceof Api.MessageReplyHeader ? msg.replyTo.replyToMsgId : undefined
       if (replyToMsgId) replyIdByMsgId.set(msgId, replyToMsgId)
@@ -116,7 +120,7 @@ function peerKey(peer: Api.TypePeer | Api.TypeInputPeer): string {
   return "unknown"
 }
 
-async function filterRecentPeers(
+export async function filterRecentPeers(
   client: TelegramClient,
   peers: Api.TypeInputPeer[],
   sinceTs: number,

@@ -28,8 +28,8 @@ function shortDate(d: Date): string {
 function formatCommentAlert(emoji: string, c: Message): string {
   const reply = c.replyTo ? ` → ${esc(c.replyTo)}` : ""
   const likes = c.likes ? ` · ${c.likes > 0 ? `${c.likes}+` : c.likes}` : ""
-  const link = c.commentUrl && c.articleTitle
-    ? `<a href="${c.commentUrl}">${esc(c.articleTitle)}</a>`
+  const link = c.linkUrl && c.linkTitle
+    ? `<a href="${c.linkUrl}">${esc(c.linkTitle)}</a>`
     : ""
   const header = `${emoji} <b>${esc(c.author)}</b>${reply} · ${formatDateShort(c.date)}${likes}`
   const shell = `${header}\n\n\n\n${link}`
