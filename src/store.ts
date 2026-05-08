@@ -123,6 +123,14 @@ export class Store {
     await this.redis.del(`source:telegram:authors:resolved:${username}`)
   }
 
+  async getTgAuthorsLastTs(): Promise<number | null> {
+    return this.redis.get<number>("source:telegram:authors:lastTs")
+  }
+
+  async setTgAuthorsLastTs(ts: number): Promise<void> {
+    await this.redis.set("source:telegram:authors:lastTs", ts)
+  }
+
   // Hot comments seen (alenka-specific, 3-day TTL per comment)
   async isHotSeen(commentId: string): Promise<boolean> {
     return (await this.redis.exists(`hot:seen:${commentId}`)) === 1

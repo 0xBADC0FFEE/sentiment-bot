@@ -148,6 +148,18 @@ describe("Store", () => {
     expect(redis.del).toHaveBeenCalledWith("source:telegram:authors:resolved:durov")
   })
 
+  it("getTgAuthorsLastTs reads source:telegram:authors:lastTs", async () => {
+    redis.get.mockResolvedValue(1730000000)
+    expect(await store.getTgAuthorsLastTs()).toBe(1730000000)
+    expect(redis.get).toHaveBeenCalledWith("source:telegram:authors:lastTs")
+  })
+
+  it("setTgAuthorsLastTs stores unix seconds", async () => {
+    redis.set.mockResolvedValue("OK")
+    await store.setTgAuthorsLastTs(1730000000)
+    expect(redis.set).toHaveBeenCalledWith("source:telegram:authors:lastTs", 1730000000)
+  })
+
   it("isHotSeen checks existence", async () => {
     redis.exists.mockResolvedValue(0)
     expect(await store.isHotSeen("c123")).toBe(false)
