@@ -17,6 +17,19 @@ function fakeStore(overrides: Partial<Record<string, any>> = {}) {
   } as any
 }
 
+function chanPeer(id: number) {
+  return new Api.InputPeerChannel({ channelId: BigInt(id) as any, accessHash: BigInt(id * 10) as any })
+}
+function dmPeer(id: number) {
+  return new Api.InputPeerUser({ userId: BigInt(id) as any, accessHash: BigInt(id * 10) as any })
+}
+
+function msg(id: string, ts: number, author = "@durov", chatId = "c"): Message {
+  return { id, chatId, chatTitle: "T", author, text: id, date: new Date(ts * 1000) }
+}
+
+const mkAuthor = (username: string, userId: string) => ({ username, resolved: { userId, accessHash: "1" } })
+
 describe("runTelegramAuthors", () => {
   it("cold-start: empty lastTs sets to now and returns 0 alerts without contacting client", async () => {
     const store = fakeStore({ getTgAuthorsLastTs: vi.fn().mockResolvedValue(null) })
@@ -47,35 +60,15 @@ describe("runTelegramAuthors", () => {
   })
 })
 
-const author = { username: "durov", resolved: { userId: "1", accessHash: "2" } }
-
-function chanPeer(id: number) {
-  return new Api.InputPeerChannel({ channelId: BigInt(id) as any, accessHash: BigInt(id * 10) as any })
-}
-function dmPeer(id: number) {
-  return new Api.InputPeerUser({ userId: BigInt(id) as any, accessHash: BigInt(id * 10) as any })
-}
-
-function fakeSearch(per: Map<string, Message[]>) {
-  return vi.fn(async (_client: any, peer: any, _resolved: any, sinceTs: number) => {
-    const key = peer instanceof Api.InputPeerChannel ? `ch:${peer.channelId}` : peer instanceof Api.InputPeerUser ? `u:${peer.userId}` : "?"
-    const msgs = per.get(key) ?? []
-    const newLastTs = msgs.length ? Math.max(...msgs.map((m) => Math.floor(m.date.getTime() / 1000))) : sinceTs
-    return { messages: msgs, newLastTs }
-  })
-}
-
-function msg(id: string, ts: number, text = id): Message {
-  return { id, chatId: "c", chatTitle: "T", author: "@durov", text, date: new Date(ts * 1000) }
-}
-
 describe("collectAuthorAlerts", () => {
   it("skips DM peers (InputPeerUser) — never invokes search on them", async () => {
-    const search = fakeSearch(new Map([["ch:1", [msg("1", 100)]]]))
+    const search = vi.fn(async (_c: any, peer: any) =>
+      peer instanceof Api.InputPeerChannel ? [msg("1", 100)] : [],
+    )
     const result = await collectAuthorAlerts({
       client: {} as any,
       peers: [chanPeer(1), dmPeer(99)],
-      resolvedAuthors: [author],
+      resolvedAuthors: [mkAuthor("durov", "1")],
       lastTs: 0,
       maxAlerts: 10,
       search,
@@ -88,33 +81,85 @@ describe("collectAuthorAlerts", () => {
     expect(calledPeer).toBeInstanceOf(Api.InputPeerChannel)
   })
 
-  it("truncates total alerts to maxAlerts", async () => {
-    const many = Array.from({ length: 8 }, (_, i) => msg(String(i + 1), 100 + i))
-    const search = fakeSearch(new Map([["ch:1", many], ["ch:2", many]]))
+  it("aggregates from every (chat × author) and selects 10 globally oldest", async () => {
+    // 2 chats × 2 authors × 4 msgs = 16 msgs total
+    // chat 1, durov(1): 100, 200, 300, 400
+    // chat 1, elvis(2): 150, 250, 350, 450
+    // chat 2, durov(1):  50, 175, 275, 375
+    // chat 2, elvis(2):  75, 125, 225, 325
+    // pool (sorted): 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 450
+    // first 10:      50, 75, 100, 125, 150, 175, 200, 225, 250, 275  (newLastTs = 275)
+    const dataset: Record<string, number[]> = {
+      "ch1:1": [100, 200, 300, 400],
+      "ch1:2": [150, 250, 350, 450],
+      "ch2:1": [50, 175, 275, 375],
+      "ch2:2": [75, 125, 225, 325],
+    }
+    const search = vi.fn(async (_c: any, peer: any, resolved: any) => {
+      const peerKey = peer instanceof Api.InputPeerChannel ? `ch${peer.channelId}` : "?"
+      const dates = dataset[`${peerKey}:${resolved.userId}`] ?? []
+      return dates.map((d) => msg(`${peerKey}-${resolved.userId}-${d}`, d))
+    })
+
     const result = await collectAuthorAlerts({
       client: {} as any,
       peers: [chanPeer(1), chanPeer(2)],
-      resolvedAuthors: [author],
+      resolvedAuthors: [mkAuthor("durov", "1"), mkAuthor("elvis", "2")],
       lastTs: 0,
       maxAlerts: 10,
       search,
       resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
       delay: () => Promise.resolve(),
     })
+
+    expect(search).toHaveBeenCalledTimes(4)
     expect(result.alerts).toHaveLength(10)
+    const dates = result.alerts.map((a: any) => Math.floor(a.comment.date.getTime() / 1000))
+    expect(dates).toEqual([50, 75, 100, 125, 150, 175, 200, 225, 250, 275])
+    expect(result.newLastTs).toBe(275)
   })
 
-  it("PEER_ID_INVALID / USER_DEACTIVATED on author → eviction surfaced, loop continues with next author", async () => {
-    const goodAuthor = { username: "good", resolved: { userId: "1", accessHash: "1" } }
-    const badAuthor = { username: "bad", resolved: { userId: "2", accessHash: "2" } }
+  it("pool smaller than maxAlerts → returns all, newLastTs = newest selected", async () => {
+    const search = vi.fn(async () => [msg("a", 100), msg("b", 300), msg("c", 200)])
+    const result = await collectAuthorAlerts({
+      client: {} as any,
+      peers: [chanPeer(1)],
+      resolvedAuthors: [mkAuthor("durov", "1")],
+      lastTs: 50,
+      maxAlerts: 10,
+      search,
+      resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
+      delay: () => Promise.resolve(),
+    })
+    expect(result.alerts).toHaveLength(3)
+    expect(result.newLastTs).toBe(300)
+  })
+
+  it("empty pool → keeps lastTs unchanged", async () => {
+    const search = vi.fn(async () => [])
+    const result = await collectAuthorAlerts({
+      client: {} as any,
+      peers: [chanPeer(1)],
+      resolvedAuthors: [mkAuthor("durov", "1")],
+      lastTs: 999,
+      maxAlerts: 10,
+      search,
+      resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
+      delay: () => Promise.resolve(),
+    })
+    expect(result.alerts).toEqual([])
+    expect(result.newLastTs).toBe(999)
+  })
+
+  it("PEER_ID_INVALID / USER_DEACTIVATED on author → eviction surfaced, loop continues", async () => {
     const search = vi.fn(async (_c: any, _peer: any, resolved: any) => {
       if (resolved.userId === "2") throw new Error("PEER_ID_INVALID")
-      return { messages: [msg("1", 100)], newLastTs: 100 }
+      return [msg("1", 100)]
     })
     const result = await collectAuthorAlerts({
       client: {} as any,
       peers: [chanPeer(1)],
-      resolvedAuthors: [badAuthor, goodAuthor],
+      resolvedAuthors: [mkAuthor("bad", "2"), mkAuthor("good", "1")],
       lastTs: 0,
       maxAlerts: 10,
       search,
@@ -126,16 +171,14 @@ describe("collectAuthorAlerts", () => {
   })
 
   it("non-eviction errors are not surfaced as evictions but loop continues", async () => {
-    const a = { username: "a", resolved: { userId: "1", accessHash: "1" } }
-    const b = { username: "b", resolved: { userId: "2", accessHash: "2" } }
     const search = vi.fn(async (_c: any, _peer: any, resolved: any) => {
       if (resolved.userId === "1") throw new Error("FLOOD_WAIT_42")
-      return { messages: [msg("1", 100)], newLastTs: 100 }
+      return [msg("1", 100)]
     })
     const result = await collectAuthorAlerts({
       client: {} as any,
       peers: [chanPeer(1)],
-      resolvedAuthors: [a, b],
+      resolvedAuthors: [mkAuthor("a", "1"), mkAuthor("b", "2")],
       lastTs: 0,
       maxAlerts: 10,
       search,

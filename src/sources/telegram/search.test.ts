@@ -30,11 +30,10 @@ describe("searchAuthorMessages", () => {
       chatId: "-1001234567890",
       chatTitle: "Test",
     })
-    expect(result.messages).toEqual([])
-    expect(result.newLastTs).toBe(1000)
+    expect(result).toEqual([])
   })
 
-  it("len < 100 → all messages, newLastTs = max(date), oldest-first", async () => {
+  it("returns all messages oldest-first", async () => {
     // Telegram returns newest-first
     const raw = [makeMsg(3, 300, "c"), makeMsg(2, 200, "b"), makeMsg(1, 100, "a")]
     const client = mockClient(raw)
@@ -42,20 +41,19 @@ describe("searchAuthorMessages", () => {
       chatId: "-1001234567890",
       chatTitle: "Test",
     })
-    expect(result.messages.map((m) => m.text)).toEqual(["a", "b", "c"])
-    expect(result.newLastTs).toBe(300)
+    expect(result.map((m) => m.text)).toEqual(["a", "b", "c"])
   })
 
-  it("len === 100 → first 10 oldest-first, newLastTs = date[9]", async () => {
+  it("does not cap — returns up to SEARCH_LIMIT messages", async () => {
     const raw = Array.from({ length: 100 }, (_, i) => makeMsg(100 - i, 1000 - i, `m${100 - i}`))
     const client = mockClient(raw)
     const result = await searchAuthorMessages(client, peer, author, 0, {
       chatId: "-1001234567890",
       chatTitle: "Test",
     })
-    expect(result.messages).toHaveLength(10)
-    expect(result.messages.map((m) => m.text)).toEqual(["m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9", "m10"])
-    expect(result.newLastTs).toBe(910)
+    expect(result).toHaveLength(100)
+    expect(result.slice(0, 3).map((m) => m.text)).toEqual(["m1", "m2", "m3"])
+    expect(result.at(-1)!.text).toBe("m100")
   })
 
   it("aggregates likes as sum of all reactions counts", async () => {
@@ -65,7 +63,7 @@ describe("searchAuthorMessages", () => {
       chatId: "-1001234567890",
       chatTitle: "Test",
     })
-    expect(result.messages[0].likes).toBe(10)
+    expect(result[0].likes).toBe(10)
   })
 
   it("populates linkTitle, linkUrl via buildMessageLink", async () => {
@@ -76,15 +74,15 @@ describe("searchAuthorMessages", () => {
       chatTitle: "Public",
       chatUsername: "durov",
     })
-    expect(pub.messages[0].linkTitle).toBe("Public")
-    expect(pub.messages[0].linkUrl).toBe("https://t.me/durov/42")
+    expect(pub[0].linkTitle).toBe("Public")
+    expect(pub[0].linkUrl).toBe("https://t.me/durov/42")
 
     const clientPriv = mockClient([makeMsg(7, 100, "y")])
     const priv = await searchAuthorMessages(clientPriv, peer, author, 0, {
       chatId: "-1001234567890",
       chatTitle: "Private",
     })
-    expect(priv.messages[0].linkUrl).toBe("https://t.me/c/1234567890/7")
+    expect(priv[0].linkUrl).toBe("https://t.me/c/1234567890/7")
   })
 
   it("invokes messages.Search with correct params", async () => {

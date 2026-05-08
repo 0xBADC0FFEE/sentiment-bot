@@ -5,17 +5,11 @@ import type { ResolvedTgUser } from "../../store.js"
 import { buildMessageLink } from "./link.js"
 
 const SEARCH_LIMIT = 100
-const MAX_PER_TICK = 10
 
 export interface ChatContext {
   chatId: string
   chatTitle: string
   chatUsername?: string
-}
-
-export interface SearchResult {
-  messages: Message[]
-  newLastTs: number
 }
 
 function sumReactions(msg: Api.Message): number | undefined {
@@ -45,7 +39,7 @@ export async function searchAuthorMessages(
   sinceTs: number,
   ctx: ChatContext,
   authorLabel = "",
-): Promise<SearchResult> {
+): Promise<Message[]> {
   const fromId = new Api.InputPeerUser({
     userId: BigInt(resolvedUser.userId) as any,
     accessHash: BigInt(resolvedUser.accessHash) as any,
@@ -72,20 +66,5 @@ export async function searchAuthorMessages(
     (m): m is Api.Message => m instanceof Api.Message,
   )
 
-  if (raw.length === 0) return { messages: [], newLastTs: sinceTs }
-
-  const oldestFirst = [...raw].sort((a, b) => a.date - b.date)
-
-  if (oldestFirst.length === SEARCH_LIMIT) {
-    const slice = oldestFirst.slice(0, MAX_PER_TICK)
-    return {
-      messages: slice.map((m) => toMessage(m, ctx, authorLabel)),
-      newLastTs: slice[slice.length - 1].date,
-    }
-  }
-
-  return {
-    messages: oldestFirst.map((m) => toMessage(m, ctx, authorLabel)),
-    newLastTs: oldestFirst[oldestFirst.length - 1].date,
-  }
+  return raw.sort((a, b) => a.date - b.date).map((m) => toMessage(m, ctx, authorLabel))
 }

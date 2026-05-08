@@ -2,7 +2,7 @@ import type { TelegramClient } from "telegram"
 import { Api } from "telegram/tl/index.js"
 import { Store, type ResolvedTgUser } from "../../store.js"
 import { Api as BotApi } from "grammy"
-import type { Alert } from "../../types.js"
+import type { Alert, Message } from "../../types.js"
 import { telegram } from "../../config.js"
 import { searchAuthorMessages as defaultSearch, type ChatContext } from "./search.js"
 import { createClient as defaultCreateClient } from "./client.js"
@@ -49,9 +49,8 @@ export async function collectAuthorAlerts(deps: CollectDeps): Promise<CollectRes
   const delay = deps.delay ?? randomDelay
   const log = deps.log ?? (() => {})
 
-  const alerts: Alert[] = []
-  let runningMax = lastTs
-  const evictions: string[] = []
+  const pool: Message[] = []
+  const evictions = new Set<string>()
 
   for (const peer of peers) {
     if (peer instanceof Api.InputPeerUser) continue
@@ -63,28 +62,29 @@ export async function collectAuthorAlerts(deps: CollectDeps): Promise<CollectRes
       continue
     }
     for (const author of resolvedAuthors) {
-      if (alerts.length >= maxAlerts) break
       await delay()
       try {
-        const result = await search(client, peer, author.resolved, lastTs, ctx, `@${author.username}`)
-        for (const m of result.messages) {
-          if (alerts.length >= maxAlerts) break
-          alerts.push({ type: "author", comment: m })
-        }
-        if (result.newLastTs > runningMax) runningMax = result.newLastTs
+        const messages = await search(client, peer, author.resolved, lastTs, ctx, `@${author.username}`)
+        pool.push(...messages)
       } catch (e) {
         const errMsg = String(e)
         if (errMsg.includes("PEER_ID_INVALID") || errMsg.includes("USER_DEACTIVATED")) {
-          if (!evictions.includes(author.username)) evictions.push(author.username)
+          evictions.add(author.username)
         } else {
           log(`  search failed for @${author.username}: ${e}`)
         }
       }
     }
-    if (alerts.length >= maxAlerts) break
   }
 
-  return { alerts, newLastTs: runningMax, evictions }
+  pool.sort((a, b) => a.date.getTime() - b.date.getTime())
+  const selected = pool.slice(0, maxAlerts)
+  const alerts: Alert[] = selected.map((m) => ({ type: "author", comment: m }))
+  const newLastTs = selected.length > 0
+    ? Math.floor(selected[selected.length - 1].date.getTime() / 1000)
+    : lastTs
+
+  return { alerts, newLastTs, evictions: [...evictions] }
 }
 
 async function defaultResolveContext(
