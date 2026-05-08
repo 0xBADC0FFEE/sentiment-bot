@@ -93,10 +93,36 @@ describe("Store", () => {
     expect(redis.sadd).toHaveBeenCalledWith("topics:tracked", "SBER")
   })
 
-  it("trackAuthor adds to set", async () => {
+  it("trackAuthor writes to per-source key", async () => {
     redis.sadd.mockResolvedValue(1)
-    await store.trackAuthor("elvis")
-    expect(redis.sadd).toHaveBeenCalledWith("authors:tracked", "elvis")
+    await store.trackAuthor("alenka", "elvis")
+    expect(redis.sadd).toHaveBeenCalledWith("authors:tracked:alenka", "elvis")
+  })
+
+  it("tracked authors are isolated per source", async () => {
+    redis.sadd.mockResolvedValue(1)
+    await store.trackAuthor("alenka", "x")
+    await store.trackAuthor("telegram", "y")
+    expect(redis.sadd).toHaveBeenCalledWith("authors:tracked:alenka", "x")
+    expect(redis.sadd).toHaveBeenCalledWith("authors:tracked:telegram", "y")
+  })
+
+  it("getTrackedAuthors reads per-source key", async () => {
+    redis.smembers.mockResolvedValue(["a"])
+    await store.getTrackedAuthors("telegram")
+    expect(redis.smembers).toHaveBeenCalledWith("authors:tracked:telegram")
+  })
+
+  it("untrackAuthor removes from per-source key", async () => {
+    redis.srem.mockResolvedValue(1)
+    await store.untrackAuthor("telegram", "x")
+    expect(redis.srem).toHaveBeenCalledWith("authors:tracked:telegram", "x")
+  })
+
+  it("isTrackedAuthor checks per-source key", async () => {
+    redis.sismember.mockResolvedValue(1)
+    expect(await store.isTrackedAuthor("alenka", "elvis")).toBe(true)
+    expect(redis.sismember).toHaveBeenCalledWith("authors:tracked:alenka", "elvis")
   })
 
   it("isHotSeen checks existence", async () => {

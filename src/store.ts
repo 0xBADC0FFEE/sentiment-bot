@@ -88,7 +88,9 @@ export class Store {
   }
 
   private topics = this.trackedSet("topics:tracked")
-  private authors = this.trackedSet("authors:tracked")
+  private authors(source: "alenka" | "telegram") {
+    return this.trackedSet(`authors:tracked:${source}`)
+  }
 
   // Topics (shared across all sources)
   trackTopic = (name: string) => this.topics.add(name)
@@ -96,11 +98,11 @@ export class Store {
   getTrackedTopics = () => this.topics.members()
   isTrackedTopic = (name: string) => this.topics.has(name)
 
-  // Authors (alenka-specific)
-  trackAuthor = (name: string) => this.authors.add(name)
-  untrackAuthor = (name: string) => this.authors.remove(name)
-  getTrackedAuthors = () => this.authors.members()
-  isTrackedAuthor = (name: string) => this.authors.has(name)
+  // Authors (per-source)
+  trackAuthor = (source: "alenka" | "telegram", name: string) => this.authors(source).add(name)
+  untrackAuthor = (source: "alenka" | "telegram", name: string) => this.authors(source).remove(name)
+  getTrackedAuthors = (source: "alenka" | "telegram") => this.authors(source).members()
+  isTrackedAuthor = (source: "alenka" | "telegram", name: string) => this.authors(source).has(name)
 
   // Hot comments seen (alenka-specific, 3-day TTL per comment)
   async isHotSeen(commentId: string): Promise<boolean> {

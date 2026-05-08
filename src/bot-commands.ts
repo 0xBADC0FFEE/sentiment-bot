@@ -116,12 +116,12 @@ async function handleStatus(ctx: Context, store: Store) {
     store.getFolder(),
     store.getSubscribers(),
     store.getTrackedTopics(),
-    store.getTrackedAuthors(),
+    store.getTrackedAuthors("alenka"),
     store.getLastId("authors"),
   ])
   const sourceNames = getSources().map((s) => s.label).join(", ")
   await ctx.reply(
-    `ℹ️ Статус:\n• Runtime: ${runtime}\n• LLM: ${llm.uri}\n• Sources: ${sourceNames}\n• Папка TG: ${folder ?? "—"}\n• Топиков: ${topics.length}\n• Авторов: ${authors.length}\n• Authors lastId: ${authorsId ?? "—"}\n• Подписчиков: ${subs.length}`,
+    `ℹ️ Статус:\n• Runtime: ${runtime}\n• LLM: ${llm.uri}\n• Sources: ${sourceNames}\n• Папка TG: ${folder ?? "—"}\n• Топиков: ${topics.length}\n• Авторов Alёnka: ${authors.length}\n• Authors lastId: ${authorsId ?? "—"}\n• Подписчиков: ${subs.length}`,
   )
 }
 
@@ -299,10 +299,10 @@ export function registerCommands(bot: Bot, store: Store) {
     emptyMsg: "Нет авторов. /follow <имя>",
     addMsg: (n) => `✅ Отслеживаю: ${n}`,
     removeMsg: (n) => `🗑️ Больше не отслеживаю: ${n}`,
-    getAll: () => store.getTrackedAuthors(),
-    isTracked: (n) => store.isTrackedAuthor(n),
-    track: (n) => store.trackAuthor(n),
-    untrack: (n) => store.untrackAuthor(n),
+    getAll: () => store.getTrackedAuthors("alenka"),
+    isTracked: (n) => store.isTrackedAuthor("alenka", n),
+    track: (n) => store.trackAuthor("alenka", n),
+    untrack: (n) => store.untrackAuthor("alenka", n),
   }))
 
   bot.command("status", adminOnly(async (ctx) => handleStatus(ctx, store)))
