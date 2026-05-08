@@ -29,6 +29,7 @@ export interface CollectDeps {
   peers: Api.TypeInputPeer[]
   resolvedAuthors: ResolvedAuthor[]
   lastTs: number
+  nowTs: number
   maxAlerts: number
   search?: typeof defaultSearch
   resolveContext?: (client: TelegramClient, peer: Api.TypeInputPeer) => Promise<ChatContext>
@@ -43,7 +44,7 @@ export interface CollectResult {
 }
 
 export async function collectAuthorAlerts(deps: CollectDeps): Promise<CollectResult> {
-  const { client, peers, resolvedAuthors, lastTs, maxAlerts } = deps
+  const { client, peers, resolvedAuthors, lastTs, nowTs, maxAlerts } = deps
   const search = deps.search ?? defaultSearch
   const resolveContext = deps.resolveContext ?? defaultResolveContext
   const delay = deps.delay ?? randomDelay
@@ -80,9 +81,10 @@ export async function collectAuthorAlerts(deps: CollectDeps): Promise<CollectRes
   pool.sort((a, b) => a.date.getTime() - b.date.getTime())
   const selected = pool.slice(0, maxAlerts)
   const alerts: Alert[] = selected.map((m) => ({ type: "author", comment: m }))
-  const newLastTs = selected.length > 0
-    ? Math.floor(selected[selected.length - 1].date.getTime() / 1000)
-    : lastTs
+  const newLastTs =
+    selected.length === maxAlerts
+      ? Math.floor(selected[selected.length - 1].date.getTime() / 1000) + 1
+      : nowTs
 
   return { alerts, newLastTs, evictions: [...evictions] }
 }
@@ -152,11 +154,13 @@ export async function runTelegramAuthors(
     const peers = await getFolderChats(client, folder)
     const active = await filterRecentPeers(client, peers, lastTs * 1000)
 
+    const nowTs = Math.floor(Date.now() / 1000)
     const result = await collect({
       client,
       peers: active,
       resolvedAuthors,
       lastTs,
+      nowTs,
       maxAlerts,
     })
 

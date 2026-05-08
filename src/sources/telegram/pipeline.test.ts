@@ -70,6 +70,7 @@ describe("collectAuthorAlerts", () => {
       peers: [chanPeer(1), dmPeer(99)],
       resolvedAuthors: [mkAuthor("durov", "1")],
       lastTs: 0,
+      nowTs: 9999,
       maxAlerts: 10,
       search,
       resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
@@ -88,9 +89,8 @@ describe("collectAuthorAlerts", () => {
     // chat 2, durov(1):  50, 175, 275, 375
     // chat 2, elvis(2):  75, 125, 225, 325
     // pool (sorted): 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 450
-    // first 10:      50, 75, 100, 125, 150, 175, 200, 225, 250, 275  (newLastTs = 275)
-    // MTProto messages.search min_date is exclusive (date > min_date per core.telegram.org docs),
-    // so the boundary message won't be re-fetched on the next tick — no +1 needed.
+    // first 10:      50, 75, 100, 125, 150, 175, 200, 225, 250, 275
+    // truncation → newLastTs = 275 + 1 to skip boundary on next tick (min_date is inclusive in practice)
     const dataset: Record<string, number[]> = {
       "ch1:1": [100, 200, 300, 400],
       "ch1:2": [150, 250, 350, 450],
@@ -108,6 +108,7 @@ describe("collectAuthorAlerts", () => {
       peers: [chanPeer(1), chanPeer(2)],
       resolvedAuthors: [mkAuthor("durov", "1"), mkAuthor("elvis", "2")],
       lastTs: 0,
+      nowTs: 9999,
       maxAlerts: 10,
       search,
       resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
@@ -118,39 +119,41 @@ describe("collectAuthorAlerts", () => {
     expect(result.alerts).toHaveLength(10)
     const dates = result.alerts.map((a: any) => Math.floor(a.comment.date.getTime() / 1000))
     expect(dates).toEqual([50, 75, 100, 125, 150, 175, 200, 225, 250, 275])
-    expect(result.newLastTs).toBe(275)
+    expect(result.newLastTs).toBe(276)
   })
 
-  it("pool smaller than maxAlerts → returns all, newLastTs = newest selected", async () => {
+  it("pool smaller than maxAlerts → returns all, newLastTs = nowTs (caught up)", async () => {
     const search = vi.fn(async () => [msg("a", 100), msg("b", 300), msg("c", 200)])
     const result = await collectAuthorAlerts({
       client: {} as any,
       peers: [chanPeer(1)],
       resolvedAuthors: [mkAuthor("durov", "1")],
       lastTs: 50,
+      nowTs: 9999,
       maxAlerts: 10,
       search,
       resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
       delay: () => Promise.resolve(),
     })
     expect(result.alerts).toHaveLength(3)
-    expect(result.newLastTs).toBe(300)
+    expect(result.newLastTs).toBe(9999)
   })
 
-  it("empty pool → keeps lastTs unchanged", async () => {
+  it("empty pool → newLastTs = nowTs (no author messages, advance cursor)", async () => {
     const search = vi.fn(async () => [])
     const result = await collectAuthorAlerts({
       client: {} as any,
       peers: [chanPeer(1)],
       resolvedAuthors: [mkAuthor("durov", "1")],
       lastTs: 999,
+      nowTs: 9999,
       maxAlerts: 10,
       search,
       resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
       delay: () => Promise.resolve(),
     })
     expect(result.alerts).toEqual([])
-    expect(result.newLastTs).toBe(999)
+    expect(result.newLastTs).toBe(9999)
   })
 
   it("PEER_ID_INVALID / USER_DEACTIVATED on author → eviction surfaced, loop continues", async () => {
@@ -163,6 +166,7 @@ describe("collectAuthorAlerts", () => {
       peers: [chanPeer(1)],
       resolvedAuthors: [mkAuthor("bad", "2"), mkAuthor("good", "1")],
       lastTs: 0,
+      nowTs: 9999,
       maxAlerts: 10,
       search,
       resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
@@ -182,6 +186,7 @@ describe("collectAuthorAlerts", () => {
       peers: [chanPeer(1)],
       resolvedAuthors: [mkAuthor("a", "1"), mkAuthor("b", "2")],
       lastTs: 0,
+      nowTs: 9999,
       maxAlerts: 10,
       search,
       resolveContext: async () => ({ chatId: "-1001", chatTitle: "T" }),
@@ -220,6 +225,11 @@ describe("runTelegramAuthors orchestrator", () => {
     expect(store.setTgAuthorsLastTs).toHaveBeenCalledWith(5555)
     expect(broadcastAlert).toHaveBeenCalledTimes(1)
     expect(fakeClient.disconnect).toHaveBeenCalled()
+
+    const collectArgs = collect.mock.calls[0][0]
+    const before = Math.floor(Date.now() / 1000)
+    expect(collectArgs.nowTs).toBeGreaterThanOrEqual(collectArgs.lastTs)
+    expect(collectArgs.nowTs).toBeLessThanOrEqual(before)
   })
 
   it("evictions trigger deleteResolvedTgUser per username", async () => {
