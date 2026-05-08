@@ -125,6 +125,29 @@ describe("Store", () => {
     expect(redis.sismember).toHaveBeenCalledWith("authors:tracked:alenka", "elvis")
   })
 
+  it("setResolvedTgUser writes per-username key with 7d TTL and string-serialized ids", async () => {
+    redis.set.mockResolvedValue("OK")
+    await store.setResolvedTgUser("durov", { userId: "1", accessHash: "-2245008065968966897" })
+    expect(redis.set).toHaveBeenCalledWith(
+      "source:telegram:authors:resolved:durov",
+      { userId: "1", accessHash: "-2245008065968966897" },
+      { ex: 604800 },
+    )
+  })
+
+  it("getResolvedTgUser reads per-username key", async () => {
+    redis.get.mockResolvedValue({ userId: "1", accessHash: "2" })
+    const result = await store.getResolvedTgUser("durov")
+    expect(redis.get).toHaveBeenCalledWith("source:telegram:authors:resolved:durov")
+    expect(result).toEqual({ userId: "1", accessHash: "2" })
+  })
+
+  it("deleteResolvedTgUser deletes per-username key", async () => {
+    redis.del.mockResolvedValue(1)
+    await store.deleteResolvedTgUser("durov")
+    expect(redis.del).toHaveBeenCalledWith("source:telegram:authors:resolved:durov")
+  })
+
   it("isHotSeen checks existence", async () => {
     redis.exists.mockResolvedValue(0)
     expect(await store.isHotSeen("c123")).toBe(false)

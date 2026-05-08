@@ -9,8 +9,14 @@ export interface Session {
 
 const ONE_DAY = 86_400
 const THREE_DAYS = 3 * ONE_DAY
+const SEVEN_DAYS = 7 * ONE_DAY
 const FIVE_MINUTES = 300
 const FOUR_HOURS = 4 * 3_600
+
+export interface ResolvedTgUser {
+  userId: string
+  accessHash: string
+}
 
 export class Store {
   private redis: Redis
@@ -103,6 +109,19 @@ export class Store {
   untrackAuthor = (source: "alenka" | "telegram", name: string) => this.authors(source).remove(name)
   getTrackedAuthors = (source: "alenka" | "telegram") => this.authors(source).members()
   isTrackedAuthor = (source: "alenka" | "telegram", name: string) => this.authors(source).has(name)
+
+  // Resolved TG username cache (7-day TTL per username)
+  async setResolvedTgUser(username: string, value: ResolvedTgUser): Promise<void> {
+    await this.redis.set(`source:telegram:authors:resolved:${username}`, value, { ex: SEVEN_DAYS })
+  }
+
+  async getResolvedTgUser(username: string): Promise<ResolvedTgUser | null> {
+    return this.redis.get<ResolvedTgUser>(`source:telegram:authors:resolved:${username}`)
+  }
+
+  async deleteResolvedTgUser(username: string): Promise<void> {
+    await this.redis.del(`source:telegram:authors:resolved:${username}`)
+  }
 
   // Hot comments seen (alenka-specific, 3-day TTL per comment)
   async isHotSeen(commentId: string): Promise<boolean> {
