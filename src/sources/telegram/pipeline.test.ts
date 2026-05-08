@@ -89,6 +89,8 @@ describe("collectAuthorAlerts", () => {
     // chat 2, elvis(2):  75, 125, 225, 325
     // pool (sorted): 50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 450
     // first 10:      50, 75, 100, 125, 150, 175, 200, 225, 250, 275  (newLastTs = 275)
+    // MTProto messages.search min_date is exclusive (date > min_date per core.telegram.org docs),
+    // so the boundary message won't be re-fetched on the next tick — no +1 needed.
     const dataset: Record<string, number[]> = {
       "ch1:1": [100, 200, 300, 400],
       "ch1:2": [150, 250, 350, 450],

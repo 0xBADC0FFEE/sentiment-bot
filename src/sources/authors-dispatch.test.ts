@@ -1,5 +1,22 @@
 import { describe, it, expect, vi } from "vitest"
-import { runAuthorsForSource } from "./authors-dispatch.js"
+import { AUTHORS_SOURCES, isAuthorsSource, runAuthorsForSource } from "./authors-dispatch.js"
+
+describe("isAuthorsSource", () => {
+  it("accepts known sources", () => {
+    expect(isAuthorsSource("alenka")).toBe(true)
+    expect(isAuthorsSource("telegram")).toBe(true)
+  })
+
+  it("rejects unknown / empty / case-mismatched values", () => {
+    expect(isAuthorsSource("Alenka")).toBe(false)
+    expect(isAuthorsSource("twitter")).toBe(false)
+    expect(isAuthorsSource("")).toBe(false)
+  })
+
+  it("AUTHORS_SOURCES enumerates exactly the supported sources", () => {
+    expect([...AUTHORS_SOURCES].sort()).toEqual(["alenka", "telegram"])
+  })
+})
 
 describe("runAuthorsForSource", () => {
   it("source=alenka → calls runAuthors with opts", async () => {

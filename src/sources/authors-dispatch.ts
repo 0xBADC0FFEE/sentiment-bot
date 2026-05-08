@@ -3,7 +3,10 @@ import { Api } from "grammy"
 import { runAuthors as defaultRunAuthors } from "./alenka/pipeline.js"
 import { runTelegramAuthors as defaultRunTelegram } from "./telegram/pipeline.js"
 
-export type AuthorsSource = "alenka" | "telegram"
+export const AUTHORS_SOURCES = ["alenka", "telegram"] as const
+export type AuthorsSource = (typeof AUTHORS_SOURCES)[number]
+export const isAuthorsSource = (s: string): s is AuthorsSource =>
+  (AUTHORS_SOURCES as readonly string[]).includes(s)
 
 export interface AuthorsDispatchOpts {
   store?: Store

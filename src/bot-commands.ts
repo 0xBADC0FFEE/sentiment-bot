@@ -6,7 +6,7 @@ import { startKeyboard, sourceKeyboard, promptKeyboard, repeatKeyboard, resolveB
 import { getSources } from "./sources/registry.js"
 import { runTrends, runTopics } from "./pipeline.js"
 import { runHot } from "./sources/alenka/pipeline.js"
-import { runAuthorsForSource } from "./sources/authors-dispatch.js"
+import { runAuthorsForSource, isAuthorsSource, type AuthorsSource } from "./sources/authors-dispatch.js"
 import { normalizeTgUsername } from "./sources/telegram/username.js"
 import { resolveTgUsername } from "./sources/telegram/resolve.js"
 import { followUp } from "./analyzer.js"
@@ -45,6 +45,11 @@ async function withTyping<T>(ctx: Context, fn: () => Promise<T>): Promise<T> {
 
 async function resolveSource(store: Store, chat: string): Promise<string> {
   return (await store.getUserSource(chat)) || getSources()[0].name
+}
+
+async function resolveAuthorsSource(store: Store, chat: string): Promise<AuthorsSource> {
+  const explicit = await store.getUserSource(chat)
+  return explicit && isAuthorsSource(explicit) ? explicit : "alenka"
 }
 
 function parseDuration(input: string): number | undefined {
@@ -102,7 +107,7 @@ async function runAndReply(
 const AUTHORS_PAGE = 10
 
 async function handleAuthors(ctx: Context, store: Store) {
-  const source = await resolveSource(store, chatId(ctx)) as "alenka" | "telegram"
+  const source = await resolveAuthorsSource(store, chatId(ctx))
   return execWithReply(ctx, "Authors",
     () => runAuthorsForSource(source, { store, api: ctx.api, maxAlerts: AUTHORS_PAGE }),
     (r) => r.alerts >= AUTHORS_PAGE
@@ -283,10 +288,13 @@ function formatAuthorsSection(source: string, names: string[]): string {
 function followCommand(store: Store) {
   return adminOnly(async (ctx: Context) => {
     const arg = ctx.match?.toString().trim()
+    const chat = chatId(ctx)
+    const explicitRaw = await store.getUserSource(chat)
+    const explicitSource = explicitRaw && isAuthorsSource(explicitRaw) ? explicitRaw : null
+
     if (!arg) {
-      const explicitSource = await store.getUserSource(chatId(ctx))
       if (explicitSource) {
-        const names = await store.getTrackedAuthors(explicitSource as "alenka" | "telegram")
+        const names = await store.getTrackedAuthors(explicitSource)
         if (!names.length) return ctx.reply("Нет авторов. /follow имя или /follow @username")
         return ctx.reply(formatAuthorsSection(explicitSource, names), { parse_mode: "HTML" })
       }
@@ -302,9 +310,7 @@ function followCommand(store: Store) {
       return ctx.reply(sections.join("\n\n"), { parse_mode: "HTML" })
     }
 
-    const chat = chatId(ctx)
-    const explicitSource = await store.getUserSource(chat)
-    const source = explicitSource || "alenka"
+    const source: AuthorsSource = explicitSource ?? "alenka"
     const fallbackSuffix = explicitSource ? "" : " (Alёnka — по умолчанию)"
 
     if (source === "telegram") {
