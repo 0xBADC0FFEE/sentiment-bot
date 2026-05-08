@@ -9,9 +9,8 @@ export interface Message {
   reactions?: { emoji: string; count: number }[]
   likes?: number
   images?: string[]
-  articleTitle?: string
-  articleUrl?: string
-  commentUrl?: string
+  linkTitle?: string
+  linkUrl?: string
 }
 
 export type HotAlert = { type: "hot"; comment: Message }
