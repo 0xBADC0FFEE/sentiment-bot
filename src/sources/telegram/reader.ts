@@ -120,7 +120,7 @@ function peerKey(peer: Api.TypePeer | Api.TypeInputPeer): string {
   return "unknown"
 }
 
-async function filterRecentPeers(
+export async function filterRecentPeers(
   client: TelegramClient,
   peers: Api.TypeInputPeer[],
   sinceTs: number,

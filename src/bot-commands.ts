@@ -5,7 +5,8 @@ import type { Store, Session } from "./store.js"
 import { startKeyboard, sourceKeyboard, promptKeyboard, repeatKeyboard, resolveButton, DEFAULT_DURATION_MS, REPEAT_PREFIX, type ButtonAction } from "./keyboard.js"
 import { getSources } from "./sources/registry.js"
 import { runTrends, runTopics } from "./pipeline.js"
-import { runAuthors, runHot } from "./sources/alenka/pipeline.js"
+import { runHot } from "./sources/alenka/pipeline.js"
+import { runAuthorsForSource } from "./sources/authors-dispatch.js"
 import { normalizeTgUsername } from "./sources/telegram/username.js"
 import { resolveTgUsername } from "./sources/telegram/resolve.js"
 import { followUp } from "./analyzer.js"
@@ -101,15 +102,14 @@ async function runAndReply(
 const AUTHORS_PAGE = 10
 
 async function handleAuthors(ctx: Context, store: Store) {
-  const source = await resolveSource(store, chatId(ctx))
-  if (source === "telegram") {
-    await ctx.reply("⏳ TG-pipeline ещё не подключён (см. #11).")
-    return
-  }
-  return execWithReply(ctx, "Authors", () => runAuthors({ store, api: ctx.api, maxAlerts: AUTHORS_PAGE }),
+  const source = await resolveSource(store, chatId(ctx)) as "alenka" | "telegram"
+  return execWithReply(ctx, "Authors",
+    () => runAuthorsForSource(source, { store, api: ctx.api, maxAlerts: AUTHORS_PAGE }),
     (r) => r.alerts >= AUTHORS_PAGE
       ? `✅ ${r.alerts} алертов. Нажмите ещё раз для следующих.`
-      : `✅ ${r.comments} комментариев, ${r.alerts} алертов.`)
+      : r.comments != null
+        ? `✅ ${r.comments} комментариев, ${r.alerts} алертов.`
+        : `✅ ${r.alerts} алертов.`)
 }
 
 function handleHot(ctx: Context, store: Store) {

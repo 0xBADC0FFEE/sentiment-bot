@@ -5,6 +5,7 @@
     "api/cron/telegram-trends.ts": { "memory": 1024, "includeFiles": "prompts/**" },
     "api/cron/alenka-trends.ts": { "memory": 1024, "includeFiles": "prompts/**" },
     "api/cron/alenka-authors.ts": { "memory": 1024 },
-    "api/cron/alenka-hot.ts": { "memory": 1024 }
+    "api/cron/alenka-hot.ts": { "memory": 1024 },
+    "api/cron/telegram-authors.ts": { "memory": 1024 }
   }
 }
