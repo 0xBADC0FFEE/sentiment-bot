@@ -24,8 +24,8 @@ describe("registry", () => {
     expect(source.capabilities).toEqual(["trends", "topics", "authors", "hot"])
   })
 
-  it("telegram has trends and topics", () => {
+  it("telegram has trends, topics and authors", () => {
     const source = getSource("telegram")
-    expect(source.capabilities).toEqual(["trends", "topics"])
+    expect(source.capabilities).toEqual(["trends", "topics", "authors"])
   })
 })

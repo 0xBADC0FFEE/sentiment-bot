@@ -6,6 +6,8 @@ import { startKeyboard, sourceKeyboard, promptKeyboard, repeatKeyboard, resolveB
 import { getSources } from "./sources/registry.js"
 import { runTrends, runTopics } from "./pipeline.js"
 import { runAuthors, runHot } from "./sources/alenka/pipeline.js"
+import { normalizeTgUsername } from "./sources/telegram/username.js"
+import { resolveTgUsername } from "./sources/telegram/resolve.js"
 import { followUp } from "./analyzer.js"
 import { llm, telegram } from "./config.js"
 
@@ -98,7 +100,12 @@ async function runAndReply(
 
 const AUTHORS_PAGE = 10
 
-function handleAuthors(ctx: Context, store: Store) {
+async function handleAuthors(ctx: Context, store: Store) {
+  const source = await resolveSource(store, chatId(ctx))
+  if (source === "telegram") {
+    await ctx.reply("⏳ TG-pipeline ещё не подключён (см. #11).")
+    return
+  }
   return execWithReply(ctx, "Authors", () => runAuthors({ store, api: ctx.api, maxAlerts: AUTHORS_PAGE }),
     (r) => r.alerts >= AUTHORS_PAGE
       ? `✅ ${r.alerts} алертов. Нажмите ещё раз для следующих.`
@@ -112,16 +119,17 @@ function handleHot(ctx: Context, store: Store) {
 
 async function handleStatus(ctx: Context, store: Store) {
   const runtime = process.env.VERCEL ? "Vercel" : `Local (${hostname()})`
-  const [folder, subs, topics, authors, authorsId] = await Promise.all([
+  const [folder, subs, topics, alenkaAuthors, tgAuthors, authorsId] = await Promise.all([
     store.getFolder(),
     store.getSubscribers(),
     store.getTrackedTopics(),
     store.getTrackedAuthors("alenka"),
+    store.getTrackedAuthors("telegram"),
     store.getLastId("authors"),
   ])
   const sourceNames = getSources().map((s) => s.label).join(", ")
   await ctx.reply(
-    `ℹ️ Статус:\n• Runtime: ${runtime}\n• LLM: ${llm.uri}\n• Sources: ${sourceNames}\n• Папка TG: ${folder ?? "—"}\n• Топиков: ${topics.length}\n• Авторов Alёnka: ${authors.length}\n• Authors lastId: ${authorsId ?? "—"}\n• Подписчиков: ${subs.length}`,
+    `ℹ️ Статус:\n• Runtime: ${runtime}\n• LLM: ${llm.uri}\n• Sources: ${sourceNames}\n• Папка TG: ${folder ?? "—"}\n• Топиков: ${topics.length}\n• Авторов Alёnka: ${alenkaAuthors.length} · Telegram: ${tgAuthors.length}\n• Authors lastId: ${authorsId ?? "—"}\n• Подписчиков: ${subs.length}`,
   )
 }
 
@@ -263,6 +271,86 @@ function toggleCommand(store: Store, cfg: ToggleConfig) {
   }, ADMIN_DENIED)
 }
 
+const AUTHORS_SOURCE_TITLE: Record<string, string> = {
+  alenka: "📝 Авторы Alёnka",
+  telegram: "📝 Авторы Telegram",
+}
+
+function formatAuthorsSection(source: string, names: string[]): string {
+  return `${AUTHORS_SOURCE_TITLE[source]}:\n${names.map((n) => `• <code>${n}</code>`).join("\n")}`
+}
+
+function followCommand(store: Store) {
+  return adminOnly(async (ctx: Context) => {
+    const arg = ctx.match?.toString().trim()
+    if (!arg) {
+      const explicitSource = await store.getUserSource(chatId(ctx))
+      if (explicitSource) {
+        const names = await store.getTrackedAuthors(explicitSource as "alenka" | "telegram")
+        if (!names.length) return ctx.reply("Нет авторов. /follow имя или /follow @username")
+        return ctx.reply(formatAuthorsSection(explicitSource, names), { parse_mode: "HTML" })
+      }
+      const [alenka, telegram] = await Promise.all([
+        store.getTrackedAuthors("alenka"),
+        store.getTrackedAuthors("telegram"),
+      ])
+      const sections = [
+        ...(alenka.length ? [formatAuthorsSection("alenka", alenka)] : []),
+        ...(telegram.length ? [formatAuthorsSection("telegram", telegram)] : []),
+      ]
+      if (!sections.length) return ctx.reply("Нет авторов. /follow имя или /follow @username")
+      return ctx.reply(sections.join("\n\n"), { parse_mode: "HTML" })
+    }
+
+    const chat = chatId(ctx)
+    const explicitSource = await store.getUserSource(chat)
+    const source = explicitSource || "alenka"
+    const fallbackSuffix = explicitSource ? "" : " (Alёnka — по умолчанию)"
+
+    if (source === "telegram") {
+      return followTelegramAuthor(ctx, store, arg)
+    }
+
+    return toggleAlenkaAuthor(ctx, store, arg, fallbackSuffix)
+  }, ADMIN_DENIED)
+}
+
+async function toggleAlenkaAuthor(ctx: Context, store: Store, name: string, suffix: string): Promise<void> {
+  if (await store.isTrackedAuthor("alenka", name)) {
+    await store.untrackAuthor("alenka", name)
+    await ctx.reply(`🗑️ Больше не отслеживаю: ${name}${suffix}`)
+  } else {
+    await store.trackAuthor("alenka", name)
+    await ctx.reply(`✅ Отслеживаю: ${name}${suffix}`)
+  }
+}
+
+async function followTelegramAuthor(ctx: Context, store: Store, raw: string): Promise<void> {
+  const username = normalizeTgUsername(raw)
+  if (!username) {
+    await ctx.reply("❌ Неверный формат. Используйте /follow @username")
+    return
+  }
+
+  if (await store.isTrackedAuthor("telegram", username)) {
+    await store.untrackAuthor("telegram", username)
+    await store.deleteResolvedTgUser(username)
+    await ctx.reply(`🗑️ Больше не отслеживаю: @${username}`)
+    return
+  }
+
+  await ctx.replyWithChatAction("typing")
+  const resolved = await resolveTgUsername(username)
+  if (!resolved) {
+    await ctx.reply(`❌ Юзернейм @${username} не найден`)
+    return
+  }
+
+  await store.setResolvedTgUser(username, resolved)
+  await store.trackAuthor("telegram", username)
+  await ctx.reply(`✅ Отслеживаю: @${username}`)
+}
+
 function analysisCommand(store: Store, mode: "trends" | "topics") {
   return adminOnly(async (ctx: Context) => {
     const { durationMs, customArg } = parseCommandArgs(ctx.match?.toString())
@@ -294,16 +382,7 @@ export function registerCommands(bot: Bot, store: Store) {
     untrack: (n) => store.untrackTopic(n),
   }))
 
-  bot.command("follow", toggleCommand(store, {
-    title: "📝 Авторы",
-    emptyMsg: "Нет авторов. /follow <имя>",
-    addMsg: (n) => `✅ Отслеживаю: ${n}`,
-    removeMsg: (n) => `🗑️ Больше не отслеживаю: ${n}`,
-    getAll: () => store.getTrackedAuthors("alenka"),
-    isTracked: (n) => store.isTrackedAuthor("alenka", n),
-    track: (n) => store.trackAuthor("alenka", n),
-    untrack: (n) => store.untrackAuthor("alenka", n),
-  }))
+  bot.command("follow", followCommand(store))
 
   bot.command("status", adminOnly(async (ctx) => handleStatus(ctx, store)))
   bot.command("trends", analysisCommand(store, "trends"))
