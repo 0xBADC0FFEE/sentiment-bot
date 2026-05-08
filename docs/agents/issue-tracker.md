@@ -20,3 +20,23 @@ Create a GitHub issue.
 ## When a skill says "fetch the relevant ticket"
 
 Run `gh issue view <number> --comments`.
+
+## Auto-closing issues from PRs / commits
+
+GitHub auto-closes issues only when a commit reaching `main` (or the PR body) contains a *closing keyword* per ID: `closes`, `fixes`, `resolves` (case-insensitive). Each ID needs its own keyword.
+
+**Works:**
+
+- `Closes #6` (PR body or commit message)
+- `Closes #6, closes #7, closes #8` — keyword repeated per ID
+- `(closes #11)` in a commit subject
+
+**Doesn't work** (these issues stay OPEN even after merge):
+
+- `Closes #6, #7, #8` — only #6 is parsed; #7/#8 read as bare references
+- `Refs: #7` — not a closing keyword
+- `Closes part of #9` — "part of" disables auto-close
+- `(#10)` in commit subject — that's a PR-suffix, not a keyword
+- Squash-merge bodies edited at merge time that drop the keywords
+
+When a PR spans multiple issues, prefer **per-commit** `Closes #N` (one keyword per ID) over a comma-list in the PR body. Verify after merge: `gh issue view <N> --json state,closedByPullRequestsReferences`.
